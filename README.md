@@ -3,13 +3,13 @@
 </p>
 
 <p align="center">
-  <strong>A native Linux desktop downloader for <a href="https://myrient.erista.me">myrient.erista.me</a></strong><br/>
-  Built with Rust + egui. No browser. No Python runtime. One binary.
+  <strong>A native cross-platform desktop downloader for <a href="https://myrient.erista.me">myrient.erista.me</a></strong><br/>
+  Built with Rust + egui. No browser. No Python. No external tools. One binary.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/rust-1.75%2B-orange?style=flat-square&logo=rust" alt="Rust 1.75+"/>
-  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-blue?style=flat-square&logo=linux" alt="Linux | Windows | macOS"/>
+  <img src="https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-blue?style=flat-square" alt="Linux | Windows | macOS"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License"/>
   <img src="https://img.shields.io/badge/egui-0.27-purple?style=flat-square" alt="egui 0.27"/>
 </p>
@@ -18,55 +18,71 @@
 
 ## Overview
 
-**myrient-dl** is a native cross-platform GUI application for browsing and downloading content from [Myrient](https://myrient.erista.me) — a free preservation archive hosting ROM sets, disc images, and software collections. It replaces the tedious process of navigating a web browser, manually copying links, and running wget commands by hand.
+**myrient-dl** is a native cross-platform GUI app for browsing and downloading from [Myrient](https://myrient.erista.me) — a free community preservation archive hosting ROM sets, disc images, and software collections.
 
-The app browses Myrient's directory listings directly, lets you queue individual files or entire folders, and downloads everything concurrently in the background using `wget1` — while showing live progress bars, download speeds, and ETA for every active transfer.
+Browse Myrient's directory tree, select files and folders, and download everything concurrently with live progress bars, speed, and ETA — with no browser, no wget, and no command line required.
 
-Everything is written in **Rust** and uses **egui** for a lightweight, native-feeling dark UI. No Electron, no web view, no runtime dependencies beyond the binary itself.
+Written in **Rust** with **egui** for a lightweight, native dark UI. Downloads are handled entirely in-process using `reqwest` — no external tools needed on any platform.
 
 ---
 
 ## Features
 
 ### Browsing
-- **Live directory browser** — fetches and renders Myrient's Apache directory listings directly, with folder/file icons, file sizes, and modification dates
-- **Breadcrumb navigation** — click any level of the path to jump back up the tree
-- **Filter bar** — type to instantly filter the current directory by name; folders and files that don't match are hidden. Press Escape or click `✕` to clear. Match count shown as you type
-- **Select All** — a button in the column header queues all visible unqueued files in one click, respecting the active filter (e.g. filter for "mario" then select all to queue only matching files)
-- **Baked-in folder sizes** — top-level folder sizes are pre-calculated and compiled into the binary via `fetch_sizes`, so you can see at a glance how large each collection is before downloading
-- **Virtual scrolling** — only visible rows are rendered, keeping memory usage low even in directories with thousands of entries
+- **Live directory browser** — fetches Myrient's directory listings directly, with folder/file icons, sizes, and modification dates
+- **Breadcrumb navigation** — click any crumb to jump back up the tree; scroll position is remembered per folder
+- **Filter bar** — type to instantly filter the current directory; press Escape to clear
+- **Baked-in folder sizes** — top-level and subfolder sizes are pre-calculated and compiled into the binary, so you see sizes at a glance without waiting for network requests
+- **Virtual scrolling** — only visible rows are rendered in both the browser and queue panels, keeping the UI fast even with thousands of items
 
-### Queue management
-- **Click to queue** — click any file to instantly add it to the download queue; downloads begin automatically
-- **Queue entire folders** — hover any folder to reveal a `+ folder` button that recursively scans and queues every file within it as individual jobs
-- **DLC & update auto-queuing** — when you queue a game file, myrient-dl automatically searches the current directory for related DLC, update, and patch files and silently adds them to the queue
-- **Persistent queue** — the queue is saved to `~/.local/share/myrient-dl/queue.json` on every change and restored when you reopen the app
-- **Pause & resume** — pause any active download; it will resume with `wget1 -c` from where it left off
+### Selection & queuing
+- **Click to select files** — click a file row to select/deselect it; shift-click to select a range
+- **Select all / deselect** — button in the filter bar selects all visible unqueued files (respects the active filter)
+- **Folder checkboxes** — check any folder to mark it for queuing; check multiple folders at once
+- **Add to queue** — a single "Add N files + N folders to queue" button queues everything selected at once. Folder contents are scanned recursively via HTTP when queued
+- **Persistent queue** — saved to `~/.local/share/myrient-dl/queue.json` on every change and restored on relaunch
+- **Resume-first** — when you start the queue after a restart, previously interrupted downloads resume before new ones begin
 
 ### Downloads
-- **Concurrent downloads** — configurable 1–16 simultaneous downloads via a toolbar slider, showing `N threads` live as you adjust
-- **Correct folder structure** — `--cut-dirs=1` strips only the `/files/` prefix; downloaded files land at `<dest>/<collection>/<subfolder>/...` preserving the full Myrient path hierarchy
-- **Automatic retries** — configurable retry count (default 3) with exponential backoff (2s, 4s, 8s…) on failure
-- **Checksum verification** — after each download completes, myrient-dl fetches the `.md5` or `.sfv` sidecar file if available and verifies the download, showing `✓` or `⚠` in the queue
-- **Disk space check** — before starting, `statvfs` checks available space against the estimated download size and warns in the log if it's tight
+- **Pure Rust downloader** — no `wget` or any external tool required; downloads run entirely in-process using `reqwest` streaming
+- **Resume support** — uses HTTP `Range` headers to continue interrupted downloads from where they left off
+- **Concurrent downloads** — configurable 1–16 simultaneous downloads via a toolbar slider
+- **Correct folder structure** — files are saved to `<dest>/<collection>/<subfolder>/...`, preserving the full Myrient path hierarchy (equivalent to `wget --cut-dirs=1 -nH`)
+- **Automatic retries** — configurable retry count (default 3) with exponential backoff on failure
+- **Checksum verification** — fetches `.md5` or `.sfv` sidecar files after download and verifies, showing `✓` or `⚠` in the queue
+- **Disk space check** — checks available space against the estimated size before starting
 
 ### Progress & monitoring
-- **Live progress bars** — each active download shows a progress bar with percentage, auto-scaled speed (`KB/s`, `MB/s`, `GB/s`), and ETA
-- **Spooling animation** — an animated sweep shows the download is starting before the first progress data arrives from wget1
-- **Active downloads panel** — a dedicated panel above the main content shows all in-progress downloads, scaling in height with the number of concurrent jobs
-- **Event log** — a collapsible log panel at the bottom shows timestamped events: queued, started, progress milestones, completion, errors. Auto-scrolls during active downloads
+- **Live progress bars** — each active download shows percentage, speed (auto-scaled KB/s → GB/s), and ETA, updated 4× per second
+- **Total speed in header** — the active downloads panel shows combined speed across all running transfers
+- **Window title** — shows live stats (`myrient-dl  —  ↓ 87.3 MB/s  ·  6 active  ·  331 queued`) so you can monitor from the taskbar
+- **Queue totals** — the queue header shows item count and total file size
 
-### Settings
-- **Persistent settings** — destination path, concurrency, retry count, and checksum toggle are saved to `~/.local/share/myrient-dl/settings.json`
-- **Folder picker** — click the `📁` button next to the destination field to open a native GTK folder chooser dialog
-- **Verify checksums toggle** — enable/disable post-download MD5/SFV verification per session
+### Queue management
+- **Shift-click multi-select** — select ranges of queue items for bulk operations
+- **Remove selected** — remove multiple queued items at once
+- **Keep selected only** — remove everything except your selection (useful for trimming a large queue)
+- **Pause & resume** — pause any active download; it resumes from the byte offset it stopped at
+
+### UI
+- **Retro theme** — toggle a vivid green-phosphor CRT palette from the toolbar (`retro` / `dim` button)
+- **Resizable panels** — drag the divider between browser and queue; drag the active downloads panel edge to resize
+- **Persistent settings** — all settings saved between sessions
 
 ---
 
 ## Installation
 
-### Prerequisites
+### Pre-built binaries
 
+Download the latest release for your platform from the [Releases](../../releases) page. No installation required — just run the binary.
+
+> **Windows**: you may need to allow the binary through SmartScreen on first run.  
+> **macOS**: right-click → Open to bypass Gatekeeper on first run.
+
+### Build from source
+
+**Linux prerequisites:**
 ```bash
 # Fedora / RHEL
 sudo dnf install rust cargo openssl-devel gtk3-devel \
@@ -79,156 +95,107 @@ sudo apt install cargo libssl-dev libgtk-3-dev \
                  libx11-dev libxcursor-dev libxrandr-dev libxi-dev
 ```
 
-You'll also need [`wget1`](https://www.gnu.org/software/wget/) installed and on your `PATH`. On most distributions this is provided by the `wget` package — check whether your distro ships `wget` as `wget1` or just `wget`, and adjust accordingly.
-
-### Build
-
+**Build:**
 ```bash
 git clone https://github.com/yourusername/myrient-dl
 cd myrient-dl
-
-# Optional but recommended: pre-calculate folder sizes
-# This crawls Myrient recursively (~5–10 minutes) and bakes the results
-# into generated_sizes.rs so they're available at compile time.
-cargo run --bin fetch_sizes
-
-# Build the main app
 cargo build --release
-
-# Run
 ./target/release/myrient-dl
 ```
 
-The release binary is fully self-contained — copy it anywhere and run it.
+> **Note on memory:** the `generated_sizes` module contains ~67,000 pre-computed folder sizes split across 135 source files to keep per-file compile memory manageable. If compilation OOMs on a low-memory machine, try `cargo build --release -j1` to limit parallelism.
 
 ---
 
 ## Folder size data
 
-Myrient's directory listings show `-` for folder sizes, so myrient-dl includes a companion tool that crawls the site, sums all file sizes recursively, and writes the results as a compile-time Rust source file.
+Myrient's directory listings show `-` for folder sizes. myrient-dl ships with pre-computed sizes baked in, but you can refresh them:
 
 ```bash
+# First run: crawls entire Myrient tree (takes several hours, checkpoints as it goes)
 cargo run --bin fetch_sizes
-# → writes src/generated_sizes.rs
-# → rebuild the app to include the new data
+
+# Subsequent runs: only re-crawls folders whose modification date changed
+cargo run --bin fetch_sizes -- --refresh
+
+# Then rebuild to include the new data
 cargo build --release
 ```
 
-You only need to do this once (or whenever Myrient's content changes significantly). The baked-in data is committed to the repo so you can also just build without running `fetch_sizes` — folder sizes will show `—` for any folder not in the data.
+The crawler checkpoints to `fetch_sizes_cache.json` — if it's interrupted, re-running it resumes from where it left off. Delete the cache file to force a full re-crawl.
 
 ---
 
 ## Usage
 
-### Browsing and queuing files
-
 1. Launch the app — it opens at the Myrient `/files/` root
-2. Click folders to navigate in; use the breadcrumb bar to go back up
-3. Click any file row to queue it — it starts downloading immediately
-4. Hover a folder row to reveal `→ open` and `+ folder` buttons
-   - `→ open` navigates into the folder
-   - `+ folder` recursively scans and queues every file within it
-
-### Managing downloads
-
-- The **Active Downloads** panel appears above the browser when downloads are running, showing a live progress bar per file
-- Click **⏸ pause** on any active download to pause it; the queue row shows a **▶ resume** button to continue
-- The **Queue** panel on the right shows all jobs with their status; click `✕` to remove completed or failed jobs
-- **Clear done** removes all finished and errored jobs from the queue
-- **▶ Start All** manually kicks off any waiting or paused jobs (useful if you've changed the destination path)
+2. Navigate folders by clicking them; use the breadcrumb bar to go back
+3. **Select files** by clicking their rows (shift-click for ranges)
+4. **Select folders** by clicking their checkboxes on the left
+5. Click **Add N files + N folders to queue** to queue everything
+6. Click **▶ Start queue** — downloads begin immediately, resuming any previous session's interrupted transfers first
 
 ### Settings
 
-All settings persist between sessions automatically:
-
 | Setting | Default | Description |
-|---|---|---|
+|---------|---------|-------------|
 | Dest | `~/Downloads/myrient` | Root folder for all downloads |
-| Concurrent | 4 | Simultaneous wget1 processes |
-| Retries | 3 | Retry attempts on failure (exponential backoff) |
-| Verify | ✓ | Check MD5/SFV sidecar files after download |
+| Threads | 4 | Simultaneous downloads (1–16) |
+| Retries | 3 | Retry attempts on failure |
+| Verify | ✓ | Check MD5/SFV after download |
 
 ---
 
-## Project structure
+## Architecture
 
 ```
-myrient-dl/
-├── Cargo.toml
-└── src/
-    ├── main.rs              # Full application (~1500 lines)
-    ├── generated_sizes.rs   # Baked folder sizes (written by fetch_sizes)
-    └── bin/
-        └── fetch_sizes.rs   # Standalone crawler — run once to populate sizes
+┌─────────────┐   browse    ┌─────────────────┐
+│  egui UI    │ ── thread ─▶│  reqwest +      │
+│  (main      │             │  scraper        │
+│   thread)   │◀─ Mutex ───│  (worker thread)│
+└──────┬──────┘             └─────────────────┘
+       │ DlCmd channel
+       ▼
+┌─────────────────┐  semaphore  ┌──────────────────────┐
+│ Download manager│ ───────────▶│  reqwest streaming   │
+│ thread          │             │  (one thread/job)    │
+│                 │◀─ progress─│  Range: resume       │
+└─────────────────┘             └──────────────────────┘
 ```
 
----
-
-## How it works
-
-### Architecture
-
-The app uses a simple shared-state model:
-
-```
-┌─────────────┐     browse       ┌──────────────┐
-│  egui UI    │ ──── thread ────▶ │  reqwest +   │
-│  (main      │                  │  scraper     │
-│   thread)   │ ◀── Arc<Mutex> ─ │  (worker     │
-└─────────────┘   shared state   │   threads)   │
-      │                          └──────────────┘
-      │ DlCmd channel
-      ▼
-┌─────────────────┐   semaphore   ┌──────────────┐
-│ Download manager│ ─────────────▶│  wget1       │
-│ thread          │               │  subprocess  │
-│ (owns kill_tx   │ ◀── stderr ── │  (per job)   │
-│  per job)       │               └──────────────┘
-└─────────────────┘
-```
-
-- **UI thread** — runs egui's update loop, polls `Arc<Mutex<Shared>>` for results, sends `DlCmd` to the download manager
-- **Browse threads** — spawned per navigation, fetch + parse HTML via `reqwest` + `scraper`, write results back to shared state
-- **Download manager thread** — owns a `Semaphore` for concurrency limiting, spawns one thread per job, manages kill signals for pause/cancel
-- **Progress threads** — one per active download, reads wget1's stderr line by line and parses `--progress=dot:mega` output for percentage, speed, and ETA
-
-### Memory optimisations
-
-- `Arc<str>` for all URL and filename strings in `DirEntry` — avoids cloning on every render frame
-- Single shared `reqwest::Client` (via `once_cell::Lazy`) — connection pool shared across all requests
-- Virtual scrolling in the browser — only rows in the visible viewport are allocated
-- `VecDeque` log capped at 500 entries — bounded memory regardless of session length
+- **UI thread** — egui update loop, polls shared state, sends `DlCmd` to download manager
+- **Browse threads** — spawned per navigation, fetch + parse HTML, write to shared state
+- **Download manager** — owns a semaphore for concurrency limiting, spawns one thread per job
+- **Download threads** — stream HTTP response directly to disk via `reqwest`, reporting progress back to shared state every 250ms
 
 ---
 
 ## Dependencies
 
 | Crate | Purpose |
-|---|---|
-| `eframe` / `egui` | Native GUI |
-| `reqwest` | HTTP client (blocking) |
-| `scraper` | HTML parsing |
+|-------|---------|
+| `eframe` / `egui` | Native GUI framework |
+| `reqwest` | HTTP client — browsing and downloading |
+| `scraper` | HTML parsing for directory listings |
 | `serde` / `serde_json` | Settings and queue persistence |
-| `shellexpand` | `~/` expansion in paths |
-| `rfd` | Native GTK folder picker |
-| `chrono` | Log timestamps |
+| `shellexpand` | `~/` path expansion |
+| `rfd` | Native folder picker dialog |
 | `md5` | Checksum verification |
-| `nix` | `statvfs` disk space check |
-| `rayon` | Parallel folder crawling in `fetch_sizes` |
-| `once_cell` | Lazy static HTTP client and folder size map |
-| `regex-lite` | DLC/update name matching |
+| `libc` | `statvfs` disk space check (Unix) |
+| `windows-sys` | `GetDiskFreeSpaceExW` (Windows) |
+| `rayon` | Parallel crawling in `fetch_sizes` |
+| `once_cell` | Lazy static HTTP client |
 
 ---
 
 ## Contributing
 
-Pull requests welcome. A few areas that would make good contributions:
+Pull requests welcome. Some ideas:
 
-- **Import/export** queue as a plain text URL list
+- **Import/export** queue as a plain URL list
 - **Torrent support** — Myrient provides `.torrent` files for some collections
-- **Notification** on download completion (via `libnotify`)
-- **System tray** integration for background downloading
-- **Bandwidth limiting** — pass `--limit-rate` to wget1
+- **Desktop notifications** on completion
+- **Bandwidth limiting** — cap download speed per job or globally
 
 ---
 
@@ -240,4 +207,4 @@ MIT — see [LICENSE](LICENSE)
 
 ## Acknowledgements
 
-[Myrient](https://myrient.erista.me) is a free, community-run preservation archive. If you find it useful, please consider [donating](https://myrient.erista.me/donate/) to help keep it running.
+[Myrient](https://myrient.erista.me) is a free, community-run preservation archive. If you find it useful, please [consider donating](https://myrient.erista.me/donate/).

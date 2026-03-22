@@ -7,8 +7,7 @@ use eframe::egui::{self, Color32, FontId, RichText, Stroke, Vec2};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
+use std::io::Write;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -376,53 +375,9 @@ fn parse_size_str(s: &str) -> u64 {
     (num * mult as f64) as u64
 }
 
-/// Parse wget speed like "1.23M", "456K", "12.3G"
-fn parse_wget_speed(s: &str) -> f64 {
-    let s = s.trim();
-    let (n, mult) = if let Some(v) = s.strip_suffix('G') { (v, 1e9) }
-        else if let Some(v) = s.strip_suffix('M') { (v, 1e6) }
-        else if let Some(v) = s.strip_suffix('K') { (v, 1e3) }
-        else { (s, 1.0) };
-    n.parse::<f64>().unwrap_or(0.0) * mult
-}
-
-/// Parse wget ETA like "45s", "3m20s", "1h5m"
-fn parse_wget_eta(s: &str) -> u64 {
-    let s = s.trim();
-    let mut secs = 0u64;
-    let mut acc  = String::new();
-    for ch in s.chars() {
-        match ch {
-            '0'..='9' => acc.push(ch),
-            'h' => { secs += acc.parse::<u64>().unwrap_or(0) * 3600; acc.clear(); }
-            'm' => { secs += acc.parse::<u64>().unwrap_or(0) * 60;   acc.clear(); }
-            's' => { secs += acc.parse::<u64>().unwrap_or(0);        acc.clear(); }
-            _   => {}
-        }
-    }
-    secs
-}
-
-/// Parse wget --progress=dot:mega line → (percent, speed_bps, eta_secs)
-fn parse_wget_progress(line: &str) -> Option<(f32, f64, u64)> {
-    let tokens: Vec<&str> = line.split_whitespace().collect();
-    for (i, tok) in tokens.iter().enumerate() {
-        if tok.ends_with('%') {
-            if let Ok(p) = tok.trim_end_matches('%').parse::<f32>() {
-                let speed = tokens.get(i+1).map(|s| parse_wget_speed(s)).unwrap_or(0.0);
-                let eta   = tokens.get(i+2).map(|s| parse_wget_eta(s)).unwrap_or(0);
-                return Some((p, speed, eta));
-            }
-        }
-    }
-    None
-}
-
 // ── Disk space check ──────────────────────────────────────────────────────────
 fn free_bytes(path: &str) -> Option<u64> {
-    use nix::sys::statvfs::statvfs;
-    let p = std::path::Path::new(path);
-    let mut p = p;
+    let mut p = std::path::Path::new(path);
     let tmp;
     loop {
         if p.exists() { break; }
@@ -431,7 +386,42 @@ fn free_bytes(path: &str) -> Option<u64> {
             None => return None,
         }
     }
-    statvfs(p).ok().map(|s| s.blocks_available() * s.block_size() as u64)
+
+    #[cfg(unix)]
+    {
+        use std::mem::MaybeUninit;
+        use std::ffi::CString;
+        let cpath = CString::new(p.to_str()?).ok()?;
+        unsafe {
+            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+            if libc::statvfs(cpath.as_ptr(), stat.as_mut_ptr()) == 0 {
+                let s = stat.assume_init();
+                return Some(s.f_bavail as u64 * s.f_frsize as u64);
+            }
+        }
+        None
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        let wide: Vec<u16> = p.as_os_str().encode_wide().chain(Some(0)).collect();
+        let mut free_bytes = 0u64;
+        unsafe {
+            if windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW(
+                wide.as_ptr(),
+                &mut free_bytes,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            ) != 0 {
+                return Some(free_bytes);
+            }
+        }
+        None
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    None
 }
 
 // ── Checksum verification ─────────────────────────────────────────────────────
@@ -662,8 +652,6 @@ fn run_with_retries(
     kill_rx:     &std::sync::mpsc::Receiver<()>,
     max_retries: u32,
 ) -> JobStatus {
-    // Convert the one-shot kill_rx into a shared flag so we can pass it to threads
-    let killed = Arc::new(Mutex::new(false));
     let mut attempt = job.retry_count;
 
     loop {
@@ -679,11 +667,8 @@ fn run_with_retries(
             thread::sleep(delay);
         }
 
-        // Check kill flag before attempting
+        // Check for cancel before starting
         if kill_rx.try_recv().is_ok() {
-            *killed.lock().unwrap() = true;
-        }
-        if *killed.lock().unwrap() {
             let mut s = shared.lock().unwrap();
             if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
                 j.status = JobStatus::Paused; j.resume = true;
@@ -691,104 +676,155 @@ fn run_with_retries(
             return JobStatus::Paused;
         }
 
-        let mut args = vec![
-            "-r".to_string(), "-np".to_string(), "-nH".to_string(),
-            "--cut-dirs=1".to_string(),
-            "--progress=dot:mega".to_string(),
-            "-P".to_string(), dest.to_string(),
-        ];
-        if job.resume || attempt > 0 { args.push("-c".to_string()); }
-        args.push(job.url.clone());
-
-        let child = Command::new("wget1")
-            .args(&args)
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn();
-
-        let mut child = match child {
-            Ok(c) => c,
-            Err(e) => {
-                let msg = if e.kind() == std::io::ErrorKind::NotFound {
-                    "wget1 not found — is it installed?".to_string()
-                } else { e.to_string() };
+        // ── Native reqwest download ──────────────────────────────────────────
+        // Mirrors wget1 -r -np -nH --cut-dirs=1 -P <dest> [-c] <url>
+        // Path: dest / segs[2..] (segs[0]="files", segs[1]=top-folder, rest=relative)
+        let file_path = match guess_dest_path(dest, &job.url) {
+            Some(p) => p,
+            None => {
+                let msg = format!("Cannot determine output path for {}", job.url);
                 shared.lock().unwrap().push_log(format!("Error: {}", msg), true);
                 return JobStatus::Error(msg);
             }
         };
 
-        // Parse stderr progress in side thread
-        let stderr  = child.stderr.take().unwrap();
-        let shared2 = Arc::clone(shared);
-        let jid     = job.id.clone();
-        let jname   = job.name.clone();
-        thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                if let Some((pct, spd, eta)) = parse_wget_progress(&line) {
-                    let mut s = shared2.lock().unwrap();
-                    if let Some(p) = s.progress.get_mut(&jid) {
-                        p.percent = pct; p.speed_bps = spd; p.eta_secs = Some(eta);
-                    }
-                    if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid) {
-                        if j.status == JobStatus::Spooling { j.status = JobStatus::Downloading; }
-                    }
-                    if (pct as u32) % 25 == 0 && pct > 0.0 {
-                        s.push_log(format!("{}: {}% @ {}", jname, pct as u32, fmt_speed(spd)), false);
-                    }
-                }
+        // Create parent directories
+        if let Some(parent) = std::path::Path::new(&file_path).parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                let msg = format!("Cannot create directory: {}", e);
+                shared.lock().unwrap().push_log(format!("Error: {}", msg), true);
+                return JobStatus::Error(msg);
             }
-        });
-
-        // Kill watcher — polls kill_rx and sets the flag
-        let killed2  = Arc::clone(&killed);
-        let shared3  = Arc::clone(shared);
-        let jid3     = job.id.clone();
-        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
-        // We forward the kill signal via a new channel since kill_rx is borrowed
-        let (fwd_tx, fwd_rx) = std::sync::mpsc::channel::<()>();
-        // Forward thread: wait for kill signal and set flag
-        thread::spawn(move || {
-            if fwd_rx.recv().is_ok() {
-                *killed2.lock().unwrap() = true;
-                let mut s = shared3.lock().unwrap();
-                if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid3) {
-                    if j.status.is_active() { j.status = JobStatus::Paused; j.resume = true; }
-                }
-            }
-            let _ = done_tx.send(());
-        });
-
-        // Check kill_rx and forward
-        if kill_rx.try_recv().is_ok() {
-            let _ = fwd_tx.send(());
-        } else {
-            // Spawn a thread that waits for kill then forwards
-            thread::spawn(move || {
-                // This intentionally leaks fwd_tx if the process exits normally — that's fine,
-                // the forward thread will just get a disconnected error and exit
-                drop(fwd_tx); // drop immediately if no kill expected
-            });
         }
 
-        let exit = child.wait();
-        let _ = done_rx.recv_timeout(Duration::from_millis(200));
+        // Check existing size for resume
+        let existing_bytes = if job.resume || attempt > 0 {
+            std::fs::metadata(&file_path).ok().map(|m| m.len()).unwrap_or(0)
+        } else {
+            0
+        };
 
-        let is_paused = *killed.lock().unwrap() ||
-            shared.lock().unwrap().queue.iter()
-                .find(|j| j.id == job.id)
-                .map(|j| j.status == JobStatus::Paused)
-                .unwrap_or(false);
-        if is_paused { return JobStatus::Paused; }
+        // Build request
+        let mut req = CLIENT.get(&job.url);
+        if existing_bytes > 0 {
+            req = req.header("Range", format!("bytes={}-", existing_bytes));
+        }
 
-        match exit {
-            Ok(s) if s.success() => return JobStatus::Done,
-            Ok(s) => {
+        let response = match req.timeout(Duration::from_secs(60)).send() {
+            Ok(r) => r,
+            Err(e) => {
                 attempt += 1;
                 if attempt > max_retries {
-                    return JobStatus::Error(format!("exit {}", s.code().unwrap_or(-1)));
+                    return JobStatus::Error(e.to_string());
+                }
+                continue;
+            }
+        };
+
+        let status = response.status();
+        // 416 = Range Not Satisfiable — file already complete
+        if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+            return JobStatus::Done;
+        }
+        if !status.is_success() {
+            attempt += 1;
+            if attempt > max_retries {
+                return JobStatus::Error(format!("HTTP {}", status));
+            }
+            continue;
+        }
+
+        let is_partial    = status == reqwest::StatusCode::PARTIAL_CONTENT;
+        let total_bytes   = response.content_length()
+            .map(|n| n + if is_partial { existing_bytes } else { 0 });
+
+        // Open file — append for resume, truncate for fresh start
+        let mut file = match if is_partial && existing_bytes > 0 {
+            std::fs::OpenOptions::new().append(true).open(&file_path)
+        } else {
+            std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(&file_path)
+        } {
+            Ok(f) => f,
+            Err(e) => return JobStatus::Error(format!("Cannot open {}: {}", file_path, e)),
+        };
+
+        // Mark as Downloading
+        {
+            let mut s = shared.lock().unwrap();
+            if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
+                j.status = JobStatus::Downloading;
+            }
+        }
+
+        // Stream body with progress updates
+        let mut downloaded = existing_bytes;
+        let mut last_update = std::time::Instant::now();
+        let mut last_bytes  = existing_bytes;
+        let jid2    = job.id.clone();
+        let jname2  = job.name.clone();
+        let mut response = response;
+
+        let result: Result<(), String> = (|| {
+            use std::io::Read;
+            let mut buf = vec![0u8; 256 * 1024]; // 256 KB chunks
+            loop {
+                // Check cancel
+                if kill_rx.try_recv().is_ok() {
+                    let mut s = shared.lock().unwrap();
+                    if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid2) {
+                        j.status = JobStatus::Paused; j.resume = true;
+                    }
+                    return Err("cancelled".into());
+                }
+
+                let n = response.read(&mut buf).map_err(|e| e.to_string())?;
+                if n == 0 { break; }
+
+                file.write_all(&buf[..n]).map_err(|e| e.to_string())?;
+                downloaded += n as u64;
+
+                // Update progress ~4x/sec
+                let now = std::time::Instant::now();
+                let elapsed = now.duration_since(last_update).as_secs_f64();
+                if elapsed >= 0.25 {
+                    let bps   = (downloaded - last_bytes) as f64 / elapsed;
+                    let pct   = total_bytes.map(|t| downloaded as f32 / t as f32 * 100.0).unwrap_or(0.0);
+                    let eta   = if bps > 0.0 {
+                        total_bytes.map(|t| ((t.saturating_sub(downloaded)) as f64 / bps) as u64)
+                    } else { None };
+                    {
+                        let mut s = shared.lock().unwrap();
+                        if let Some(p) = s.progress.get_mut(&jid2) {
+                            p.percent   = pct.min(100.0);
+                            p.speed_bps = bps;
+                            p.eta_secs  = eta;
+                        }
+                    }
+                    last_update = now;
+                    last_bytes  = downloaded;
                 }
             }
-            Err(e) => return JobStatus::Error(e.to_string()),
+            Ok(())
+        })();
+
+        match result {
+            Err(e) if e == "cancelled" => return JobStatus::Paused,
+            Err(e) => {
+                attempt += 1;
+                if attempt > max_retries { return JobStatus::Error(e); }
+                continue;
+            }
+            Ok(()) => {
+                // Final 100% progress update
+                {
+                    let mut s = shared.lock().unwrap();
+                    if let Some(p) = s.progress.get_mut(&job.id) {
+                        p.percent = 100.0; p.speed_bps = 0.0; p.eta_secs = Some(0);
+                    }
+                    s.push_log(format!("Done: {}", jname2), false);
+                }
+                return JobStatus::Done;
+            }
         }
     }
 }
