@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 200" width="480" height="200">
+<defs>
+  <clipPath id="cr3"><rect x="0" y="0" width="480" height="134"/></clipPath>
+  <clipPath id="cr2"><rect x="0" y="0" width="480" height="145"/></clipPath>
+  <clipPath id="cr1"><rect x="0" y="0" width="480" height="156"/></clipPath>
+  <style>
+    @keyframes pulse  { 0%,100%{opacity:0.25} 50%{opacity:0.9} }
+    @keyframes pulse2 { 0%,100%{opacity:0.1}  50%{opacity:0.5} }
+    @keyframes glow   { 0%,100%{opacity:0.6}  50%{opacity:1.0} }
+    @keyframes ndglow { 0%,100%{opacity:0.25} 50%{opacity:0.8} }
+    @keyframes crglow { 0%,100%{opacity:0.65} 50%{opacity:1.0} }
+    @keyframes thread { 0%,100%{opacity:0.06} 50%{opacity:0.28} }
+    @keyframes bar1 {
+      0%   { width:0px;   opacity:0.0; }
+      5%   { width:0px;   opacity:0.6; }
+      75%  { width:120px; opacity:1.0; }
+      88%  { width:120px; opacity:0.5; }
+      100% { width:120px; opacity:0.0; }
+    }
+    @keyframes bar2 {
+      0%   { width:0px;   opacity:0.0; }
+      5%   { width:0px;   opacity:0.6; }
+      75%  { width:120px; opacity:1.0; }
+      88%  { width:120px; opacity:0.5; }
+      100% { width:120px; opacity:0.0; }
+    }
+    @keyframes bar3 {
+      0%   { width:0px;   opacity:0.0; }
+      5%   { width:0px;   opacity:0.6; }
+      75%  { width:120px; opacity:1.0; }
+      88%  { width:120px; opacity:0.5; }
+      100% { width:120px; opacity:0.0; }
+    }
+    .r1  { animation: pulse  1.8s ease-in-out infinite 0.0s; }
+    .r2  { animation: pulse  1.8s ease-in-out infinite 0.3s; }
+    .r3  { animation: pulse2 1.8s ease-in-out infinite 0.6s; }
+    .acc { animation: glow   1.8s ease-in-out infinite; }
+    .nd1 { animation: ndglow 2.2s ease-in-out infinite 0.0s; }
+    .nd2 { animation: ndglow 2.2s ease-in-out infinite 0.6s; }
+    .nd3 { animation: ndglow 2.2s ease-in-out infinite 1.2s; }
+    .cr  { animation: crglow 1.8s ease-in-out infinite; }
+    .th  { animation: thread 2.6s ease-in-out infinite 0.0s; }
+    .th2 { animation: thread 2.6s ease-in-out infinite 0.9s; }
+    .th3 { animation: thread 2.6s ease-in-out infinite 1.8s; }
+    .b1  { animation: bar1 14.0s ease-in-out infinite 0.0s; }
+    .b2  { animation: bar2 14.0s ease-in-out infinite 2.5s; }
+    .b3  { animation: bar3 14.0s ease-in-out infinite 5.5s; }
+  </style>
+</defs>
+
+<rect width="480" height="200" fill="#080c0f"/>
+
+<!-- Grid -->
+<line x1="0"   y1="50"  x2="480" y2="50"  stroke="#1a2420" stroke-width="0.5"/>
+<line x1="0"   y1="100" x2="480" y2="100" stroke="#1a2420" stroke-width="0.5"/>
+<line x1="0"   y1="150" x2="480" y2="150" stroke="#1a2420" stroke-width="0.5"/>
+<line x1="180" y1="0"   x2="180" y2="200" stroke="#1a2420" stroke-width="0.5"/>
+
+<!-- Claude threads -->
+<line x1="24"  y1="24"  x2="90"  y2="100" stroke="#1a6a3a" stroke-width="0.5" class="th"/>
+<line x1="456" y1="24"  x2="90"  y2="100" stroke="#1a6a3a" stroke-width="0.5" class="th2"/>
+<line x1="24"  y1="24"  x2="456" y2="24"  stroke="#0e3a20" stroke-width="0.4" class="th3"/>
+
+<!-- Claude core dot -->
+<circle cx="90" cy="100" r="8" fill="#060e08"/>
+<circle cx="90" cy="100" r="8" fill="none" stroke="#2ade80" stroke-width="1" class="r1"/>
+<circle cx="90" cy="100" r="4" fill="#2ade80" class="cr"/>
+
+<!-- Rings — clipped where they meet bars -->
+<circle cx="90" cy="100" r="61" fill="none" stroke="#1a4a2a" stroke-width="0.7" class="r3" clip-path="url(#cr3)"/>
+<circle cx="90" cy="100" r="47" fill="none" stroke="#1a7a3a" stroke-width="1.1" class="r2" clip-path="url(#cr2)"/>
+<circle cx="90" cy="100" r="33" fill="none" stroke="#2ade80" stroke-width="1.8" class="r1" clip-path="url(#cr1)"/>
+
+<!-- Solid fill behind arrow -->
+<circle cx="90" cy="100" r="32" fill="#080c0f"/>
+
+<!-- Arrow -->
+<line x1="90" y1="82"  x2="90"  y2="106" stroke="#3de8a0" stroke-width="2.5" stroke-linecap="round"/>
+<polyline points="79,99 90,112 101,99" fill="none" stroke="#3de8a0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="77" y1="118" x2="103" y2="118" stroke="#3de8a0" stroke-width="2" stroke-linecap="round"/>
+
+<!-- Claude corner nodes -->
+<circle cx="24"  cy="24"  r="3.5" fill="#2ade80" class="nd1"/>
+<circle cx="456" cy="24"  r="3.5" fill="#2ade80" class="nd2"/>
+<circle cx="240" cy="188" r="3"   fill="#2ade80" class="nd3"/>
+
+<!-- Progress bars -->
+<rect x="30" y="134" width="120" height="6" rx="2" fill="#141f18"/>
+<rect x="30" y="134" width="0"   height="6" rx="2" fill="#3de8a0" class="b1"/>
+<rect x="30" y="145" width="120" height="6" rx="2" fill="#141f18"/>
+<rect x="30" y="145" width="0"   height="6" rx="2" fill="#3de8a0" class="b2"/>
+<rect x="30" y="156" width="120" height="6" rx="2" fill="#141f18"/>
+<rect x="30" y="156" width="0"   height="6" rx="2" fill="#3de8a0" class="b3"/>
+
+<!-- Divider -->
+<line x1="180" y1="28" x2="180" y2="172" stroke="#2a4034" stroke-width="1"/>
+
+<!-- Wordmark -->
+<text x="200" y="98" font-family="'IBM Plex Mono','Courier New',monospace" font-size="44" font-weight="600" letter-spacing="-1.5" fill="#d4e8d8">myrient<tspan fill="#2a4034" font-weight="300">-dl</tspan></text>
+
+<!-- Accent line -->
+<rect x="200" y="106" width="240" height="2" rx="1" fill="#3de8a0" class="acc"/>
+
+<!-- Tagline -->
+<text x="200" y="130" font-family="'IBM Plex Mono','Courier New',monospace" font-size="9.5" letter-spacing="2" fill="#2a4034">NATIVE CROSS-PLATFORM DOWNLOADER</text>
+
+</svg>
