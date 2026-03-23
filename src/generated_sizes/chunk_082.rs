@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_082(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("No-Intro/IBM%20-%20PC%20and%20Compatibles%20%28Digital%29%20%28Groupees%29", (541481739064, "21-Jul-2023 03:09"));
-        m.insert("No-Intro/IBM%20-%20PC%20and%20Compatibles%20%28Digital%29%20%28Humble%20Bundle%29", (1646845797336, "02-Sep-2025 06:36"));
         m.insert("No-Intro/IBM%20-%20PC%20and%20Compatibles%20%28Digital%29%20%28JAST%20USA%29", (80421028327, "12-Sep-2025 09:12"));
         m.insert("No-Intro/IBM%20-%20PC%20and%20Compatibles%20%28Digital%29%20%28Johren%29", (3328599653, "12-Sep-2025 22:26"));
         m.insert("No-Intro/IBM%20-%20PC%20and%20Compatibles%20%28Digital%29%20%28Kagura%20Games%29", (15104422700, "12-Sep-2025 09:03"));
@@ -472,7 +470,7 @@ pub fn fill_082(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("RetroAchievements/RA%20-%203DO%20Interactive%20Multiplayer", (8005458321, "22-Sep-2025 15:46"));
         m.insert("RetroAchievements/RA%20-%20Amstrad%20CPC", (5331715, "21-Sep-2025 21:16"));
         m.insert("RetroAchievements/RA%20-%20Apple%20II", (29321671, "25-Oct-2025 14:25"));
-        m.insert("RetroAchievements/RA%20-%20Arcade", (10347052144, "25-Oct-2025 14:25"));
+        m.insert("RetroAchievements/RA%20-%20Arcade", (10347052144, "25-Oct-2025 15:25"));
         m.insert("RetroAchievements/RA%20-%20Arcade/azumanga", (82522931, "25-Oct-2025 15:25"));
         m.insert("RetroAchievements/RA%20-%20Arcade/beachspi", (131386572, "25-Oct-2025 15:25"));
         m.insert("RetroAchievements/RA%20-%20Arcade/cvs2", (156762112, "25-Oct-2025 15:25"));
@@ -503,4 +501,6 @@ pub fn fill_082(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("RetroAchievements/RA%20-%20Fairchild%20Channel%20F", (83264, "25-Oct-2025 15:26"));
         m.insert("RetroAchievements/RA%20-%20GCE%20Vectrex", (213385, "25-Oct-2025 15:26"));
         m.insert("RetroAchievements/RA%20-%20Interton%20VC%204000", (86718, "25-Oct-2025 15:26"));
+        m.insert("RetroAchievements/RA%20-%20Magnavox%20Odyssey%202", (103923, "25-Oct-2025 15:26"));
+        m.insert("RetroAchievements/RA%20-%20Mattel%20Intellivision", (383063, "25-Oct-2025 15:26"));
 }

@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_025(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsfdr", (129918566, "02-Oct-2025 22:01"));
-        m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsftkd", (265814016, "02-Oct-2025 22:01"));
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dstage", (1393872073, "02-Oct-2025 22:01"));
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dygolf", (65640857, "02-Oct-2025 22:01"));
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/eggsplc", (3040870, "02-Oct-2025 22:01"));
@@ -503,4 +501,6 @@ pub fn fill_025(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk3m", (300131225, "02-Oct-2025 22:51"));
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk4m", (429287014, "02-Oct-2025 22:51"));
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk5m", (608488652, "02-Oct-2025 22:51"));
+        m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk6m", (618030694, "02-Oct-2025 22:51"));
+        m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk7m", (422471270, "02-Oct-2025 22:51"));
 }

@@ -44,7 +44,7 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chrono%20Regalia%20EX%20%28SDEC%29/app", (6120328396, "25-Dec-2025 12:21"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chrono%20Regalia%20EX%20%28SDEC%29/opt", (3041776, "01-Dec-2025 11:04"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29", (6822747639, "07-Mar-2026 12:13"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29/app", (5701317427, "03-Mar-2026 10:13"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29/app", (5701317427, "07-Mar-2026 12:08"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29/app/others", (10485760, "03-Mar-2026 10:12"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29/opt", (818182033, "03-Mar-2026 10:13"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20ALL.Net/Chunithm%20Luminous%20%28SDHD%29/patches", (303248179, "03-Mar-2026 10:13"));
@@ -235,7 +235,7 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements", (16955893346, "06-Mar-2026 14:45"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Alpha%20Ops%20VR%20Strike", (45403340, "03-Mar-2026 10:45"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Apex%20Rebels", (84305510, "17-Dec-2025 01:43"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Men%20in%20Black", (10549827992, "03-Mar-2026 10:47"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Men%20in%20Black", (10549827992, "06-Mar-2026 15:11"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Men%20in%20Black/others", (27158117, "01-Dec-2025 11:10"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/Plant%20vs%20Zombies%20The%20Last%20Stand", (6227702578, "03-Mar-2026 10:47"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Amusements/VR%20Agent", (48653926, "01-Dec-2025 11:10"));
@@ -281,7 +281,7 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Lindbergh/discs/Virtua%20Fighter%20Final%20Showdown%20%28ALL.Net%20P-ras%29%20%28SBUV%29", (5368709120, "03-Mar-2026 11:20"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Lindbergh/discs/Virtua%20Fighter%20Final%20Showdown%20%28SBXX%29", (5798205849, "03-Mar-2026 11:20"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Lindbergh/discs/Virtua%20Tennis%203%20%28SBKX%29", (3073376256, "03-Mar-2026 11:21"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Naomi", (8839174429, "05-Dec-2025 22:25"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Naomi", (8839174429, "06-Mar-2026 15:13"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Naomi%202", (5492021648, "06-Mar-2026 16:24"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Naomi%202/GD-ROM", (4853963154, "03-Mar-2026 11:23"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Naomi%202/iso", (638058494, "05-Dec-2025 22:55"));
@@ -299,7 +299,7 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AIR%20PLUS%20%28SDBT%29/app", (1503238695, "03-Mar-2026 11:26"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AMAZON%20%28SDBT%29", (2254857972, "06-Mar-2026 19:55"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AMAZON%20%28SDBT%29/app", (2254857972, "03-Mar-2026 11:26"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AMAZON%20PLUS%20%28SDBT%29", (2254857972, "03-Mar-2026 11:27"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AMAZON%20PLUS%20%28SDBT%29", (2254857972, "06-Mar-2026 21:34"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20AMAZON%20PLUS%20%28SDBT%29/app", (142, "03-Mar-2026 11:26"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20CRYSTAL%20%28SDBT%29", (2282225804, "06-Mar-2026 22:17"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20CRYSTAL%20%28SDBT%29/app", (2254857972, "03-Mar-2026 11:27"));
@@ -314,9 +314,9 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PARADISE%20LOST%20%28SDHX%29%28Offline%29", (947165177, "07-Mar-2026 02:26"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PARADISE%20LOST%20%28SDHX%29%28Offline%29/app", (578918809, "03-Mar-2026 11:28"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PARADISE%20LOST%20%28SDHX%29%28Offline%29/opt", (368246368, "03-Mar-2026 11:28"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PLUS%20%28SDBT%29", (1185415309, "03-Mar-2026 11:28"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PLUS%20%28SDBT%29", (1185415309, "07-Mar-2026 09:16"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20PLUS%20%28SDBT%29/app", (142, "03-Mar-2026 11:28"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20STAR%20%28SDBT%29", (2147483790, "03-Mar-2026 11:28"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20STAR%20%28SDBT%29", (2147483790, "07-Mar-2026 06:31"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20STAR%20%28SDBT%29/app", (142, "03-Mar-2026 11:28"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20STAR%20PLUS%20%28SDBT%29", (2469606337, "07-Mar-2026 06:44"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20Nu/CHUNITHM%20STAR%20PLUS%20%28SDBT%29/app", (2469606337, "03-Mar-2026 11:29"));
@@ -374,7 +374,7 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Hatsune%20Miku%20Project%20Diva%20Arcade%20%28SBTY%29/patches", (2325965820, "03-Mar-2026 12:07"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Initial%20D%20Arcade%20Stage%206%20AA%20%28SBUU%29", (15784004812, "06-Mar-2026 22:30"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Initial%20D%20Arcade%20Stage%206%20AA%20%28SBUU%29/iso", (15784004812, "03-Mar-2026 12:09"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Initial%20D%20Arcade%20Stage%208%20Infinity%20%28SBZZ%29", (11596411699, "15-Dec-2025 05:11"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Initial%20D%20Arcade%20Stage%208%20Infinity%20%28SBZZ%29", (11596411699, "07-Mar-2026 08:48"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Initial%20D%20Arcade%20Stage%208%20Infinity%20%28SBZZ%29/iso", (7301444403, "03-Mar-2026 12:10"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Melty%20Blood%20Actress%20Again%20Current%20Code%20%28SBUB%29", (792408883, "03-Mar-2026 12:16"));
         m.insert("Eggman%27s%20Arcade%20Repository/Sega/Sega%20RingEdge/Melty%20Blood%20Actress%20Again%20Current%20Code%20%28SBZN%29", (1677721, "03-Mar-2026 12:16"));
@@ -445,13 +445,13 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Documentation", (2072, "02-Dec-2025 13:49"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Documentation/Games%20Descriptions", (1126, "01-Dec-2025 17:30"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Documentation/Web%20Pages", (946, "01-Dec-2025 17:30"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Restore%20CDs", (8563300759, "08-Dec-2025 02:28"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Restore%20CDs", (8563300759, "15-Dec-2025 05:18"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Restore%20CDs/iTouch%208", (402862899, "08-Dec-2025 01:43"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Restore%20CDs/iTouch%20HD2", (3221225471, "08-Dec-2025 23:37"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/JVL/Restore%20CDs/iTouch%20HD3", (1717986918, "08-Dec-2025 23:36"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch", (3738039699, "02-Dec-2025 14:15"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation", (3850850, "02-Dec-2025 14:31"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation/Manuals", (2120905, "03-Mar-2026 12:34"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation/Manuals", (2120905, "02-Dec-2025 14:15"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation/Manuals/Megatouch-Classic", (235417, "01-Dec-2025 17:31"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation/Manuals/Unsorted", (1411888, "01-Dec-2025 17:31"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Merit%20Megatouch/Documentation/Site%20Backups", (1729945, "01-Dec-2025 17:31"));
@@ -475,9 +475,9 @@ pub fn fill_003(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Silverball/Others", (29150412, "03-Mar-2026 12:34"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Storm%20Games", (529111449, "03-Mar-2026 12:34"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various", (7605463152, "02-Dec-2025 14:49"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games", (629955281, "08-Dec-2025 09:25"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games", (629955281, "07-Mar-2026 02:42"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs", (6936937851, "06-Mar-2026 15:20"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs/Collections", (279339312, "03-Mar-2026 12:34"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs/Collections", (279339312, "06-Mar-2026 21:56"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs/Collections/Ultimate%20Touchscreen%20Games%20Build%20inc%20WinXP%20OS%20%28Aladdin%29", (236139315, "03-Mar-2026 12:34"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs/GameHouse%20Max", (6451, "20-Dec-2025 00:50"));
         m.insert("Eggman%27s%20Arcade%20Repository/Touchscreen/Various/Games%20-%20Packs/MK6%20Emulator%20plus%20Pokies%20ROMs", (2576980377, "04-Dec-2025 01:40"));

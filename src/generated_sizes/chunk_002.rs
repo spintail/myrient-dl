@@ -142,11 +142,11 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2027%20HEROIC%20VERSE%20%282019%29", (62062277427, "03-Mar-2026 07:07"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2028%20BISTROVER%20%282020%29", (62599148339, "03-Mar-2026 07:10"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2029%20CastHour%20%282021%29", (62706522521, "03-Mar-2026 07:12"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2030%20RESIDENT%20%282022%29", (33779246693, "03-Mar-2026 07:13"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2030%20RESIDENT%20%282022%29", (33779246693, "07-Mar-2026 07:39"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2030%20RESIDENT%20%282022%29/updates", (9190558924, "08-Jan-2026 05:19"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2031%20EPOLIS%20%282023%29", (67689145955, "03-Mar-2026 07:15"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2031%20EPOLIS%20%282023%29", (67689145955, "07-Mar-2026 07:39"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2031%20EPOLIS%20%282023%29/updates", (9492339095, "28-Jan-2026 00:51"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2032%20Pinky%20Crush%20%282024%29", (72473378814, "03-Mar-2026 07:17"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2032%20Pinky%20Crush%20%282024%29", (72473378814, "07-Mar-2026 07:22"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2032%20Pinky%20Crush%20%282024%29/updates", (2680160254, "28-Jan-2026 00:52"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%2033%20Sparkle%20Shower%20%282025%29", (34681860915, "03-Mar-2026 07:20"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Beatmania%20IIDX/IIDX%209th%20style%20%282003%29", (4724464025, "18-Jan-2026 14:07"));
@@ -169,7 +169,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A%20%282016%29", (16642998272, "03-Mar-2026 07:24"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A20%20%282019%29", (18468359372, "03-Mar-2026 07:25"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A20%20PLUS%20%282020%29", (37473589656, "03-Mar-2026 07:26"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A3%20%282022%29", (49219213718, "03-Mar-2026 07:28"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A3%20%282022%29", (49219213718, "07-Mar-2026 11:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20A3%20%282022%29/clean%20DDR%20A3%20Gold%20BGA", (30513561, "09-Jan-2026 05:28"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20Best%20Of%20Cool%20Dancers%20%281999%29", (233727590, "18-Dec-2025 19:40"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20Classroom%20Edition%20%282012%29", (273, "01-Dec-2025 03:08"));
@@ -188,8 +188,8 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20X2%20%282009%29", (16889748068, "03-Mar-2026 07:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Dance%20Revolution/DDR%20X3%20vs.%202ndMix%20%282011%29", (10630044057, "03-Mar-2026 07:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20Freaks", (96573849, "18-Dec-2025 19:52"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20ManiaX", (1539983861, "18-Dec-2025 19:53"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20ManiaX/DanceManiaX%20Update", (464579, "03-Mar-2026 07:33"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20ManiaX", (1539983861, "06-Mar-2026 14:31"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20ManiaX/DanceManiaX%20Update", (464579, "06-Mar-2026 14:31"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dance%20ManiaX/DanceManiaX%20Update/dance-maniax-update-master", (309657, "03-Mar-2026 07:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/DanceEvolution%20ARCADE", (12455405158, "03-Mar-2026 07:34"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Dancing%20Stage", (1210056702, "18-Dec-2025 20:23"));
@@ -243,7 +243,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/NOSTALGIA/NOSTALGIA%20Op.2", (2899102924, "03-Mar-2026 08:23"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/NOSTALGIA/NOSTALGIA%20Op.3", (28776280880, "03-Mar-2026 08:23"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Otoca%20D%27or", (3984588, "17-Dec-2025 00:53"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Polaris%20Chord", (21689585020, "03-Mar-2026 08:27"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Polaris%20Chord", (21689585020, "07-Mar-2026 08:45"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Polaris%20Chord/%21support", (176, "03-Mar-2026 08:25"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music", (285292966588, "02-Dec-2025 14:56"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/HELLO%21%20POP%27N%20MUSIC%20%282011%29", (485490688, "03-Mar-2026 08:27"));
@@ -260,7 +260,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2025%20Peace%20%282018%29", (19005230284, "03-Mar-2026 08:32"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2026%20Kaimei%20Riddles%20%282020%29", (25879484823, "07-Jan-2026 03:10"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2027%20UniLab%20%282022%29", (28083591574, "07-Jan-2026 03:23"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2028%20Jam%20%26%20Fizz%20%282024%29", (73848455063, "28-Dec-2025 08:31"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2028%20Jam%20%26%20Fizz%20%282024%29", (73848455063, "07-Mar-2026 11:57"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%2028%20Jam%20%26%20Fizz%20%282024%29/extras", (183398, "03-Mar-2026 08:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%203%20%281999%29", (1825361100, "03-Mar-2026 08:36"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Pop%27n%20Music/Pop%27n%20Music%204%20%282000%29", (2254857830, "01-Dec-2025 03:14"));
@@ -279,7 +279,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/REFLEC%20BEAT/Updates%20%28decrypted%29", (9144578422, "08-Feb-2026 03:20"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex", (207869077720, "07-Mar-2026 09:25"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20Booth", (5583457484, "03-Mar-2026 08:38"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20Exceed%20Gear", (62484434755, "03-Mar-2026 08:39"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20Exceed%20Gear", (62484434755, "07-Mar-2026 10:12"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20Exceed%20Gear%20%28All-In-One%29", (49070001356, "03-Mar-2026 08:43"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20Exceed%20Gear/Updates", (11266949751, "03-Mar-2026 08:41"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami%20Rhythm/Sound%20Voltex/Sound%20Voltex%20I-IV%20Compilation", (24051816857, "03-Mar-2026 08:45"));
@@ -319,7 +319,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Gashaaaan%20Refill%21", (458626457, "06-Feb-2026 08:22"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Harikiri%20Professional%20Baseball", (537185484, "17-Dec-2025 01:50"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Hyper%20BishiBashi%20Champ", (16777216, "05-Dec-2025 14:59"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami/KONAMI%20Timekeeper", (23346, "01-Dec-2025 02:14"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami/KONAMI%20Timekeeper", (23346, "02-Dec-2025 14:37"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/KONAMI%20Timekeeper/Adjusted%20Timekeeper", (16691, "01-Dec-2025 02:14"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Konami%20Charge%20Machine", (1010790, "03-Mar-2026 06:12"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/KonamiLive%20Arcade", (14201234, "02-Dec-2025 14:49"));
@@ -347,7 +347,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Road%20Fighters%203D", (2362232012, "03-Mar-2026 06:14"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Salary%20Man%20Champ", (6396313, "05-Dec-2025 15:30"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Scotto", (1258291, "03-Mar-2026 06:14"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami/Silent%20Hill%20The%20Arcade", (6442450944, "03-Mar-2026 06:15"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami/Silent%20Hill%20The%20Arcade", (6442450944, "06-Mar-2026 18:00"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Silent%20Hill%20The%20Arcade/patches", (1073741824, "09-Dec-2025 23:11"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Silent%20Scope%20Bone%20Eater", (2097152, "03-Mar-2026 06:15"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Smash%20Stadium", (3435973836, "03-Mar-2026 06:15"));
@@ -355,7 +355,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Super%20Bomberman%20R%20Online", (708608, "01-Dec-2025 02:20"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Tenkaichi%20Shogikai%202", (20657165, "03-Mar-2026 06:16"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi", (2460590077, "06-Mar-2026 15:09"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi/Bishi%20Bashi%20Champ%20Online", (172597247, "17-Dec-2025 00:46"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi/Bishi%20Bashi%20Champ%20Online", (172597247, "06-Mar-2026 19:23"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi/Bishi%20Bashi%20Champ%20Online/patches", (735641, "30-Jan-2026 01:37"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi/Bishi%20Bashi%20Channel", (480247808, "03-Mar-2026 06:16"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/The%20Bishi%20Bashi/The%20Bishi%20Bashi%20%282009%29", (1807745022, "15-Dec-2025 04:25"));
@@ -369,10 +369,10 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/World%20Soccer%20Winning%20Eleven%20-%20Arcade%20Championship%202008", (1932735283, "01-Dec-2025 02:23"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/World%20Soccer%20Winning%20Eleven%20-%20Arcade%20Championship%202012", (14173392076, "03-Mar-2026 06:38"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/World%20Soccer%20Winning%20Eleven%20-%20Arcade%20Championship%202014", (112931635, "03-Mar-2026 06:38"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Konami/Yu-Gi-Oh%21%205D%27s%20Duel%20Terminal%20%28Japan%29", (28768207417, "06-Dec-2025 09:53"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Konami/Yu-Gi-Oh%21%205D%27s%20Duel%20Terminal%20%28Japan%29", (28768207417, "06-Mar-2026 16:11"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Yu-Gi-Oh%21%205D%27s%20Duel%20Terminal%20%28Japan%29/OCG%20Timeline%20%28Japan%29", (25757745722, "17-Dec-2025 00:49"));
         m.insert("Eggman%27s%20Arcade%20Repository/Konami/Yu-Gi-Oh%21%20Duel%20Terminal%20%28International%29", (7112491007, "17-Dec-2025 00:51"));
-        m.insert("Eggman%27s%20Arcade%20Repository/LBE%20Systems", (116456652, "03-Mar-2026 08:50"));
+        m.insert("Eggman%27s%20Arcade%20Repository/LBE%20Systems", (116456652, "06-Mar-2026 12:58"));
         m.insert("Eggman%27s%20Arcade%20Repository/LBE%20Systems/exe", (274432, "07-Dec-2025 12:18"));
         m.insert("Eggman%27s%20Arcade%20Repository/MAME%20Rhythm", (315935948, "03-Mar-2026 08:50"));
         m.insert("Eggman%27s%20Arcade%20Repository/Namco", (344552991976, "02-Dec-2025 13:46"));
@@ -474,7 +474,7 @@ pub fn fill_002(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Super%20Bikes%203", (6335076760, "03-Mar-2026 10:10"));
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Target%20Terror", (7086696037, "08-Dec-2025 02:50"));
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Target%20Terror%20Gold", (12884901885, "06-Dec-2025 19:42"));
-        m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Teenage%20Mutant%20Ninja%20Turtles%20Arcade", (4903818136, "03-Mar-2026 10:11"));
+        m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Teenage%20Mutant%20Ninja%20Turtles%20Arcade", (4903818136, "06-Mar-2026 17:57"));
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Teenage%20Mutant%20Ninja%20Turtles%20Arcade/extras", (1620480, "01-Dec-2025 10:50"));
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/Terminator%20Salvation", (37903086385, "08-Dec-2025 02:33"));
         m.insert("Eggman%27s%20Arcade%20Repository/Raw%20Thrills/The%20Fast%20%26%20The%20Furious", (5481011607, "06-Dec-2025 10:25"));

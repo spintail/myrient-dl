@@ -3,21 +3,19 @@
 use std::collections::HashMap;
 
 pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC", (17756932707, "22-Feb-2025 05:06"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC/Guitar.Hero.Aerosmith-RELOADED", (4939212390, "25-Oct-2008 03:08"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC/Guitar.Hero.World.Tour-ViTALiTY", (6657223884, "03-Feb-2023 04:13"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC/Guitar_Hero_III%2BPatch_v1.31-HATRED", (3476141873, "16-Jan-2023 21:47"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2", (117482035598, "24-Mar-2016 02:03"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2", (117482035598, "04-Oct-2025 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s", (48655184683, "04-Oct-2025 19:51"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/150ms", (22287482876, "27-Feb-2025 01:57"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/150ms/dx", (14019670832, "27-Feb-2025 01:56"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/150ms", (22287482876, "04-Oct-2025 19:53"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/150ms/dx", (14019670832, "04-Oct-2025 19:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/150ms/dx/force_all_as_guitar", (7009835416, "27-Feb-2025 01:56"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/60ms", (26367701807, "27-Feb-2025 01:12"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/60ms/dx", (18099889763, "26-Feb-2025 22:57"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/60ms", (26367701807, "04-Oct-2025 19:55"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/60ms/dx", (18099889763, "04-Oct-2025 19:56"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS2/Resynced%20ISO%27s/60ms/dx/force_all_as_guitar", (7009835416, "26-Feb-2025 23:16"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PS3", (58948426134, "04-Mar-2023 23:52"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/WII", (39835821666, "25-May-2019 11:44"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/goodies", (25197267058, "26-Nov-2024 02:41"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/goodies", (25197267058, "04-Oct-2025 19:48"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/goodies/Guitar%20Hero%20Arcade%20PC%20Clean%20Rip", (7408818585, "13-Feb-2025 00:55"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/goodies/I%20Am%20Murloc%20OXM%20Retail%20GH3%20DLC", (14575325, "17-Mar-2025 15:50"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/goodies/various%20demo%20dumps", (7091610007, "20-Feb-2024 21:01"));
@@ -29,7 +27,7 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Re-Animated%20Collection%20by%20AddyMills/360", (3787980798, "17-Jun-2023 22:08"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Re-Animated%20Collection%20by%20AddyMills/PS3", (5682233342, "08-Jun-2023 12:29"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Karaoke%20Revolution%20DLC%20Collection", (175741335, "04-Oct-2025 19:41"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Karaoke%20Revolution%20DLC%20Collection/360", (156342679, "19-Feb-2023 03:42"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Karaoke%20Revolution%20DLC%20Collection/360", (156342679, "04-Oct-2025 19:41"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Karaoke%20Revolution%20DLC%20Collection/360/American%20Idol%20Encore%20DLC", (52743372, "19-Feb-2023 03:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Karaoke%20Revolution%20DLC%20Collection/OGXBOX", (19398656, "08-Aug-2020 16:51"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Power%20Gig%20-%20Rise%20of%20the%20SixString%20Ultimate%20Collection", (8970686974, "04-Oct-2025 19:41"));
@@ -44,7 +42,7 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Lost%20Rock%20Band%20DLC/Lost%20RB%20DLC", (100558438, "29-Jul-2025 17:56"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Lost%20Rock%20Band%20DLC/Lost%20Rock%20Band%20Network%20%28AddyMills%29", (1288490188, "26-Jan-2022 15:19"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Lost%20Rock%20Band%20DLC/RB3%20Beta%20Songs%20%28No%20Duplicates%20or%20Debug%20songs%29", (91435827, "18-Jul-2025 23:24"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/PS3%20PKG%20Packs%20%28recommended%29", (123289259213, "11-May-2023 17:09"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/PS3%20PKG%20Packs%20%28recommended%29", (123289259213, "04-Oct-2025 19:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/PS3%20PKG%20Packs%20%28recommended%29/Rock%20Band%201%20%28BLUS30050%29%20-%20DLC%20PKG%20PACKS", (36185099465, "10-May-2023 03:22"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/PS3%20PKG%20Packs%20%28recommended%29/Rock%20Band%201%20%28BLUS30050%29%20-%20Export%20Files", (1717986934, "27-Apr-2024 18:17"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/PS3%20PKG%20Packs%20%28recommended%29/Rock%20Band%202%20%28BLUS30147%29%20-%20RBN%20PKG%20PACKS", (27058293961, "06-Jan-2022 13:36"));
@@ -54,7 +52,7 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Rock%20Band%20to%20Other%20Games", (5368709119, "04-Oct-2025 19:52"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Rock%20Band%20to%20Other%20Games/RB3%20to%20Blitz", (2576980377, "16-Jul-2025 22:41"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/PS3/Rock%20Band%20to%20Other%20Games/RB3%20to%20RB2", (2791728742, "16-Jul-2025 22:42"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Wii", (174512939844, "10-Mar-2023 14:34"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Wii", (174512939844, "04-Oct-2025 19:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Wii/Mariocube.xyz", (174512929195, "04-Oct-2025 19:53"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Wii/Mariocube.xyz/Big%20WADs", (90742299025, "23-Jul-2020 18:34"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Wii/Mariocube.xyz/Split%20WADs", (83770630170, "04-Oct-2025 19:54"));
@@ -116,7 +114,7 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Lost%20Rock%20Band%20DLC/Lost%20RB%20DLC%20%28RB1%20LIVE%29", (101187584, "28-Jul-2025 20:09"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Lost%20Rock%20Band%20DLC/Lost%20Rock%20Band%20Network%20%28AddyMills%29", (1288490188, "26-Jan-2022 15:14"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Lost%20Rock%20Band%20DLC/RB3%20Beta%20Songs%20%28No%20Duplicates%20or%20Debug%20songs%29", (91960115, "18-Jul-2025 23:26"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Merged%20Packs%20%28recommended%29", (124046181319, "15-May-2023 22:47"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Merged%20Packs%20%28recommended%29", (124046181319, "04-Oct-2025 19:57"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Merged%20Packs%20%28recommended%29/Rock%20Band%201%20%2845410829%29%20-%20DLC%20LIVE%20PACKS%20%28decrypted%29", (36507222079, "31-Dec-2021 20:17"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Merged%20Packs%20%28recommended%29/Rock%20Band%201%20%2845410829%29%20-%20Export%20Files", (1611301111, "25-Feb-2022 21:28"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Merged%20Packs%20%28recommended%29/Rock%20Band%202%20%2845410869%29%20-%20RBN%20LIVE%20PACKS%20%28decrypted%29", (27380416575, "31-Dec-2021 20:18"));
@@ -141,19 +139,19 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Singular%20Cons%20%28decrypted%29/The%20Beatles%20Rock%20Band%20-%20DLC%20%28not%20compatible%20with%20RB1-2-3%29", (582483956, "09-May-2023 16:30"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20DLC%20Official%20Collection%20by%20jnack/Xbox/Singular%20Cons%20%28decrypted%29/The%20Beatles%20Rock%20Band%20-%20Disc%20%28not%20compatible%20with%20RB1-2-3%29", (793352584, "09-May-2023 16:29"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games", (1307044803188, "04-Oct-2025 19:46"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/360", (96981535940, "27-Feb-2023 14:28"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/360", (96981535940, "04-Oct-2025 19:48"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/360/_GoD_FOR_RETAIL_BADUPDATE", (31353261259, "11-Mar-2025 23:46"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/DS", (536870912, "25-Dec-1996 04:32"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/OGXBOX", (4509715660, "10-Aug-2020 23:02"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PC", (18403841023, "17-Mar-2025 16:02"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PC", (18403841023, "04-Oct-2025 19:52"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PC/Rock%20Band%20VR", (4295670374, "08-May-2023 15:08"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PS2", (37971453539, "23-Mar-2016 11:25"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PS3", (46747405512, "09-Jan-2025 05:28"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PS4", (4733167561, "03-Feb-2023 04:45"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PS4", (4733167561, "04-Oct-2025 19:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PS4/Audica.PS4%5BCUSA17685%5Dv1.00%5B6.72%5DIncl.v1.03.Backport%5B5.05%5DOPOISSO893", (2234096381, "06-Jun-2025 03:19"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/PSP", (4402341478, "09-Jun-2023 01:49"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/WII", (40587440941, "25-May-2019 10:25"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies", (1051192499056, "28-Feb-2022 18:24"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies", (1051192499056, "04-Oct-2025 19:56"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/Harmonix_Track_Pack_01_PIRS", (99509862, "16-Apr-2024 20:51"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/LEGO%20Rock%20Band%20Outfits", (14735826, "14-Sep-2024 19:21"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PIRS", (99509862, "16-Apr-2024 20:51"));
@@ -165,9 +163,9 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/INI%20Converts/RB4RIVALS-to-INI", (699190466, "17-Feb-2024 23:16"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/INI%20Converts/RBVREXCLUSIVES-to-INI", (119642520, "17-Feb-2024 17:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs", (36201876679, "04-Oct-2025 20:15"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/ps3", (18098946045, "02-Nov-2024 00:52"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/ps3", (18098946045, "04-Oct-2025 20:16"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/ps3/DLC", (15998753176, "11-Sep-2025 00:24"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/xbox", (18102930634, "02-Nov-2024 00:52"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/xbox", (18102930634, "04-Oct-2025 20:18"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/RB4-to-RB2%20packs/xbox/DLC", (15998753176, "11-Sep-2025 00:24"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/Rock%20Band%204%20Base%20Game", (19336999730, "19-Mar-2022 00:00"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/Rock%20Band%204%20Custom%20DLC", (89473417210, "18-Mar-2022 22:36"));
@@ -503,4 +501,6 @@ pub fn fill_047(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_encrypted_pkgs%2Bfpkgs/UP0006-CUSA03284_00-RBEVERFALCCF001F", (25794969, "22-Jan-2024 02:36"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_encrypted_pkgs%2Bfpkgs/UP0006-CUSA03284_00-RBEVERYLITTL1950", (37434162, "22-Jan-2024 02:25"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_encrypted_pkgs%2Bfpkgs/UP0006-CUSA03284_00-RBEXCUSEMCCF018E", (26528972, "22-Jan-2024 02:44"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_encrypted_pkgs%2Bfpkgs/UP0006-CUSA03284_00-RBEXGIRLFCCF0189", (34917580, "22-Jan-2024 02:44"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_encrypted_pkgs%2Bfpkgs/UP0006-CUSA03284_00-RBEXODUSXCCF0511", (60397977, "22-Jan-2024 02:25"));
 }

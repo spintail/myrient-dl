@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 pub fn fill_008(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/renascene", (417986935835, "20-Sep-2025 18:32"));
-        m.insert("Internet%20Archive/renascene/renascene_psone_classics_202311", (417986935835, "09-Dec-2023 04:54"));
+        m.insert("Internet%20Archive/renascene/renascene_psone_classics_202311", (417986935835, "19-Sep-2025 17:59"));
         m.insert("Internet%20Archive/renascene/renascene_psone_classics_202311/Complete%20PSOne%20Classics%20%28Renascene%20No.%20Order%29", (417973766028, "19-Sep-2025 20:35"));
         m.insert("Internet%20Archive/renascene/renascene_psone_classics_202311/Complete%20PSOne%20Classics%20%28Renascene%20No.%20Order%29/0001-0100", (39590002063, "19-Sep-2025 17:58"));
         m.insert("Internet%20Archive/renascene/renascene_psone_classics_202311/Complete%20PSOne%20Classics%20%28Renascene%20No.%20Order%29/0001-0100/0001%20-%20Resident%20Evil%202%20%5BNPUJ-00748%5D%20%5BUS%5D", (790940892, "19-Sep-2025 18:11"));

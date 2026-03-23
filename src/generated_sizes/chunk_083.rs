@@ -3,12 +3,10 @@
 use std::collections::HashMap;
 
 pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("RetroAchievements/RA%20-%20Magnavox%20Odyssey%202", (103923, "25-Oct-2025 15:26"));
-        m.insert("RetroAchievements/RA%20-%20Mattel%20Intellivision", (383063, "25-Oct-2025 15:26"));
         m.insert("RetroAchievements/RA%20-%20Mega%20Duck", (915852, "25-Oct-2025 15:26"));
         m.insert("RetroAchievements/RA%20-%20Microsoft%20MSX", (31199053, "03-Mar-2026 21:02"));
         m.insert("RetroAchievements/RA%20-%20NEC%20PC-8801", (15766694, "25-Oct-2025 15:26"));
-        m.insert("RetroAchievements/RA%20-%20NEC%20PC-FX", (9927623865, "24-Dec-1996 21:32"));
+        m.insert("RetroAchievements/RA%20-%20NEC%20PC-FX", (9927623865, "25-Oct-2025 05:47"));
         m.insert("RetroAchievements/RA%20-%20NEC%20PC-FX/J.%20B.%20Harold%20-%20Blue%20Chicago%20Blues%20%28Japan%29", (869269613, "24-Dec-1996 21:32"));
         m.insert("RetroAchievements/RA%20-%20NEC%20PC-FX/Last%20Imperial%20Prince%20%28Japan%29", (778462906, "24-Dec-1996 21:32"));
         m.insert("RetroAchievements/RA%20-%20NEC%20TurboGrafx-16", (41998164, "25-Oct-2025 15:26"));
@@ -27,13 +25,13 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("RetroAchievements/RA%20-%20SNK%20Neo%20Geo%20CD", (11133045951, "06-Aug-2025 19:29"));
         m.insert("RetroAchievements/RA%20-%20SNK%20Neo%20Geo%20Pocket", (33238918, "25-Oct-2025 15:57"));
         m.insert("RetroAchievements/RA%20-%20Sega%2032X", (65605513, "25-Oct-2025 15:56"));
-        m.insert("RetroAchievements/RA%20-%20Sega%20CD", (24110676290, "07-Aug-2025 06:33"));
+        m.insert("RetroAchievements/RA%20-%20Sega%20CD", (24110676290, "25-Oct-2025 05:52"));
         m.insert("RetroAchievements/RA%20-%20Sega%20CD/Dracula%20Unleashed%20%28USA%29", (685768777, "07-Aug-2025 06:44"));
         m.insert("RetroAchievements/RA%20-%20Sega%20CD/Ground%20Zero%20Texas%20%28USA%29", (567803977, "07-Aug-2025 06:50"));
         m.insert("RetroAchievements/RA%20-%20Sega%20CD/Night%20Trap%20%28USA%29", (510761429, "07-Aug-2025 07:00"));
         m.insert("RetroAchievements/RA%20-%20Sega%20CD/Penn%20%26%20Teller%27s%20Smoke%20and%20Mirrors%20%28USA%29%20%28Proto%29", (453718956, "07-Aug-2025 07:03"));
         m.insert("RetroAchievements/RA%20-%20Sega%20CD/Sherlock%20Holmes%20-%20Consulting%20Detective%20-%20Vol.%20II%20%28USA%29", (402338746, "07-Aug-2025 07:09"));
-        m.insert("RetroAchievements/RA%20-%20Sega%20Dreamcast", (95206089999, "07-Aug-2025 19:31"));
+        m.insert("RetroAchievements/RA%20-%20Sega%20Dreamcast", (95206089999, "25-Oct-2025 05:52"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Dreamcast/Biohazard%20-%20Code%20-%20Veronica%20-%20Kanzenban%20%28Japan%29", (1317011577, "07-Aug-2025 19:34"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Dreamcast/Biohazard%20-%20Code%20-%20Veronica%20-%20Kanzenban%20%28Japan%29%20%28Widescreen%29", (1325190496, "26-Sep-2025 04:02"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Dreamcast/Headhunter%20%28Europe%29%20%28En%2CFr%2CDe%2CEs%29", (1424071159, "07-Aug-2025 19:49"));
@@ -58,7 +56,7 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("RetroAchievements/RA%20-%20Sega%20Genesis", (776819129, "25-Oct-2025 15:56"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Master%20System", (27804429, "25-Oct-2025 15:57"));
         m.insert("RetroAchievements/RA%20-%20Sega%20SG-1000", (1696316, "25-Oct-2025 15:57"));
-        m.insert("RetroAchievements/RA%20-%20Sega%20Saturn", (52891525335, "01-Oct-2025 00:23"));
+        m.insert("RetroAchievements/RA%20-%20Sega%20Saturn", (52891525335, "25-Oct-2025 05:52"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Saturn/D%20%28USA%29", (786327184, "07-Aug-2025 06:41"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Saturn/Dungeons%20%26%20Dragons%20Collection%20%28Japan%29", (728865317, "07-Aug-2025 06:46"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Saturn/Lunacy%20%28USA%29", (945605888, "07-Aug-2025 06:54"));
@@ -68,7 +66,7 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("RetroAchievements/RA%20-%20Sega%20Saturn/Shoujo%20Kakumei%20Utena%20-%20Itsuka%20Kakumei%20Sareru%20Monogatari%20%28Japan%29", (738931660, "07-Aug-2025 07:11"));
         m.insert("RetroAchievements/RA%20-%20Sega%20Saturn/Shoujo%20Kakumei%20Utena%20-%20Itsuka%20Kakumei%20Sareru%20Monogatari%20%28Japan%29%20%28En%29%20%28v1.04%29%20%28In%20the%20Rose%20Garden%29", (754345795, "26-Sep-2025 04:44"));
         m.insert("RetroAchievements/RA%20-%20Sony%20PSP", (235041426067, "13-Sep-2025 14:53"));
-        m.insert("RetroAchievements/RA%20-%20Sony%20Playstation", (329348085056, "28-Sep-2025 17:09"));
+        m.insert("RetroAchievements/RA%20-%20Sony%20Playstation", (329348085056, "09-Nov-2025 21:47"));
         m.insert("RetroAchievements/RA%20-%20Sony%20Playstation%202", (1839924490041, "12-Oct-2025 18:40"));
         m.insert("RetroAchievements/RA%20-%20Sony%20Playstation/Ace%20Combat%203%20-%20Electrosphere%20%28Japan%2C%20Asia%29%20%28Es%29%20%28v1.1%29%20%28Tio%20Victor%29", (886151739, "24-Sep-2025 08:45"));
         m.insert("RetroAchievements/RA%20-%20Sony%20Playstation/Ace%20Combat%203%20-%20Electrosphere%20%28Japan%2C%20Asia%29%20%28Rev%201%29", (892128588, "30-Sep-2025 02:55"));
@@ -172,7 +170,7 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("T-En%20Collection/Bandai%20-%20WonderSwan%20%5BT-En%5D%20Collection", (7173832, "06-Oct-2025 11:26"));
         m.insert("T-En%20Collection/Bandai%20-%20WonderSwan%20Color%20%5BT-En%5D%20Collection", (18212245, "06-Oct-2025 11:26"));
         m.insert("T-En%20Collection/Casio%20-%20Loopy%20%5BT-En%5D%20Collection", (18140364, "06-Oct-2025 11:26"));
-        m.insert("T-En%20Collection/Fujitsu%20-%20FM-Towns%20%5BT-En%5D%20Collection", (1908068548, "06-Oct-2025 11:26"));
+        m.insert("T-En%20Collection/Fujitsu%20-%20FM-Towns%20%5BT-En%5D%20Collection", (1908068548, "16-Oct-2025 16:29"));
         m.insert("T-En%20Collection/Fujitsu%20-%20FM-Towns%20%5BT-En%5D%20Collection/Discs", (1907254882, "06-May-2025 02:01"));
         m.insert("T-En%20Collection/Microsoft%20-%20MSX%20%5BT-En%5D%20Collection", (31305700, "06-Oct-2025 11:26"));
         m.insert("T-En%20Collection/Microsoft%20-%20MSX%20Turbo-R%20%5BT-En%5D%20Collection", (83817060, "06-Oct-2025 11:26"));
@@ -181,13 +179,13 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("T-En%20Collection/Microsoft%20-%20XBOX%20360%20%5BT-En%5D%20Collection", (5667457021, "06-Oct-2025 11:28"));
         m.insert("T-En%20Collection/Mobile%20-%20J2ME%20%5BT-En%5D%20Collection", (709836, "06-Oct-2025 11:42"));
         m.insert("T-En%20Collection/NEC%20-%20PC%20Engine%20%5BT-En%5D%20Collection", (19837420, "06-Oct-2025 11:42"));
-        m.insert("T-En%20Collection/NEC%20-%20PC%20Engine%20CD%20%5BT-En%5D%20Collection", (5465472298, "06-Oct-2025 11:42"));
+        m.insert("T-En%20Collection/NEC%20-%20PC%20Engine%20CD%20%5BT-En%5D%20Collection", (5465472298, "09-Nov-2025 10:29"));
         m.insert("T-En%20Collection/NEC%20-%20PC%20Engine%20CD%20%5BT-En%5D%20Collection/Discs", (5398174097, "06-Jan-2024 02:50"));
         m.insert("T-En%20Collection/NEC%20-%20PC-6001%20%5BT-En%5D%20Collection", (134226, "06-Oct-2025 11:42"));
         m.insert("T-En%20Collection/NEC%20-%20PC-8001%20%5BT-En%5D%20Collection", (14642, "06-Oct-2025 11:42"));
         m.insert("T-En%20Collection/NEC%20-%20PC-8801%20%5BT-En%5D%20Collection", (445246870, "06-Oct-2025 11:42"));
         m.insert("T-En%20Collection/NEC%20-%20PC-9801%20%5BT-En%5D%20Collection", (1073446871, "06-Oct-2025 11:43"));
-        m.insert("T-En%20Collection/NEC%20-%20PC-FX%20%5BT-En%5D%20Collection", (2760900606, "03-Mar-2026 21:39"));
+        m.insert("T-En%20Collection/NEC%20-%20PC-FX%20%5BT-En%5D%20Collection", (2760900606, "16-Oct-2025 16:30"));
         m.insert("T-En%20Collection/NEC%20-%20PC-FX%20%5BT-En%5D%20Collection/Discs", (2751043992, "24-Aug-2025 17:46"));
         m.insert("T-En%20Collection/Nintendo%20-%20Famicom%20%5BT-En%5D%20Collection", (292519145, "06-Oct-2025 11:46"));
         m.insert("T-En%20Collection/Nintendo%20-%20Family%20Computer%20Disk%20System%20%5BT-En%5D%20Collection", (59598404, "06-Oct-2025 11:47"));
@@ -209,18 +207,18 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("T-En%20Collection/Nintendo%20-%20Virtual%20Boy%20%5BT-En%5D%20Collection", (1431652, "06-Oct-2025 15:19"));
         m.insert("T-En%20Collection/Nintendo%20-%20Wii%20%5BT-En%5D%20Collection", (28558491641, "06-Oct-2025 15:21"));
         m.insert("T-En%20Collection/Nokia%20-%20N-Gage%20%5BT-En%5D%20Collection", (27675032, "06-Oct-2025 15:39"));
-        m.insert("T-En%20Collection/Panasonic%20-%203DO%20Interactive%20Multiplayer%20%5BT-En%5D%20Collection", (706530507, "03-Mar-2026 21:40"));
+        m.insert("T-En%20Collection/Panasonic%20-%203DO%20Interactive%20Multiplayer%20%5BT-En%5D%20Collection", (706530507, "16-Oct-2025 16:37"));
         m.insert("T-En%20Collection/Panasonic%20-%203DO%20Interactive%20Multiplayer%20%5BT-En%5D%20Collection/Discs", (705481931, "04-Mar-2025 23:38"));
-        m.insert("T-En%20Collection/SNK%20-%20Neo%20Geo%20CD%20%5BT-En%5D%20Collection", (302908006, "06-Oct-2025 16:32"));
+        m.insert("T-En%20Collection/SNK%20-%20Neo%20Geo%20CD%20%5BT-En%5D%20Collection", (302908006, "16-Oct-2025 16:40"));
         m.insert("T-En%20Collection/SNK%20-%20Neo%20Geo%20CD%20%5BT-En%5D%20Collection/Discs", (302514176, "05-Feb-2024 18:36"));
         m.insert("T-En%20Collection/SNK%20-%20Neo%20Geo%20Pocket%20Color%20%5BT-En%5D%20Collection", (7504381, "06-Oct-2025 16:32"));
         m.insert("T-En%20Collection/Sega%20-%2032X%20-%20MD%2B", (690382437, "06-Oct-2025 15:40"));
         m.insert("T-En%20Collection/Sega%20-%2032X%20-%20MSU-MD", (160746700, "06-Oct-2025 15:40"));
-        m.insert("T-En%20Collection/Sega%20-%20Dreamcast%20%5BT-En%5D%20Collection", (28827733064, "06-Oct-2025 15:40"));
+        m.insert("T-En%20Collection/Sega%20-%20Dreamcast%20%5BT-En%5D%20Collection", (28827733064, "09-Nov-2025 10:29"));
         m.insert("T-En%20Collection/Sega%20-%20Dreamcast%20%5BT-En%5D%20Collection/Discs", (28827241647, "25-Dec-1996 04:32"));
         m.insert("T-En%20Collection/Sega%20-%20Game%20Gear%20%5BT-En%5D%20Collection", (35525618, "06-Oct-2025 15:40"));
         m.insert("T-En%20Collection/Sega%20-%20Master%20System%20%5BT-En%5D%20Collection", (7678967, "06-Oct-2025 15:40"));
-        m.insert("T-En%20Collection/Sega%20-%20Mega%20CD%20%5BT-En%5D%20Collection", (2233592315, "06-Oct-2025 15:40"));
+        m.insert("T-En%20Collection/Sega%20-%20Mega%20CD%20%5BT-En%5D%20Collection", (2233592315, "16-Oct-2025 16:38"));
         m.insert("T-En%20Collection/Sega%20-%20Mega%20CD%20%5BT-En%5D%20Collection/Discs", (2233571733, "25-Dec-1996 07:32"));
         m.insert("T-En%20Collection/Sega%20-%20Mega%20CD%20Hacks", (6348079092, "16-Oct-2025 16:37"));
         m.insert("T-En%20Collection/Sega%20-%20Mega%20CD%20Hacks/Discs", (6348079092, "21-Mar-2024 17:05"));
@@ -234,12 +232,12 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("T-En%20Collection/Sega%20-%20Saturn%20%5BT-En%5D%20Collection/Discs", (28641564118, "11-May-2025 20:50"));
         m.insert("T-En%20Collection/Sharp%20-%20X1%20%5BT-En%5D%20Collection", (236544, "06-Oct-2025 16:32"));
         m.insert("T-En%20Collection/Sharp%20-%20X68000%20%5BT-En%5D%20Collection", (19977005, "06-Oct-2025 16:32"));
-        m.insert("T-En%20Collection/Sony%20-%20PlayStation%20%5BT-En%5D%20Collection", (51278238028, "16-Dec-2025 10:16"));
+        m.insert("T-En%20Collection/Sony%20-%20PlayStation%20%5BT-En%5D%20Collection", (51278238028, "09-Nov-2025 10:30"));
         m.insert("T-En%20Collection/Sony%20-%20PlayStation%20%5BT-En%5D%20Collection/Discs", (50829866931, "25-Dec-1996 07:32"));
-        m.insert("T-En%20Collection/Sony%20-%20PlayStation%202%20%5BT-En%5D%20Collection", (124083031213, "03-Mar-2026 21:40"));
+        m.insert("T-En%20Collection/Sony%20-%20PlayStation%202%20%5BT-En%5D%20Collection", (124083031213, "09-Nov-2025 10:30"));
         m.insert("T-En%20Collection/Sony%20-%20PlayStation%202%20%5BT-En%5D%20Collection/Discs", (124050839930, "04-Mar-2025 23:39"));
         m.insert("T-En%20Collection/Sony%20-%20PlayStation%203%20%5BT-En%5D%20Collection", (208303884379, "06-Oct-2025 16:53"));
-        m.insert("T-En%20Collection/Sony%20-%20PlayStation%20Portable%20%5BT-En%5D%20Collection", (86468077193, "06-Oct-2025 20:59"));
+        m.insert("T-En%20Collection/Sony%20-%20PlayStation%20Portable%20%5BT-En%5D%20Collection", (86468077193, "16-Oct-2025 16:49"));
         m.insert("T-En%20Collection/Sony%20-%20PlayStation%20Portable%20%5BT-En%5D%20Collection/Discs", (85181910183, "06-Jan-2024 14:17"));
         m.insert("T-En%20Collection/Zeebo%20-%20Zeebo%20%5BT-En%5D%20Collection", (3146555, "06-Oct-2025 21:01"));
         m.insert("TOSEC", (326081509387, "16-Oct-2025 16:50"));
@@ -503,4 +501,6 @@ pub fn fill_083(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Homebrew/Applications", (14889778, "14-Jul-2025 05:34"));
         m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Homebrew/Games", (270043648, "29-Jan-2023 03:21"));
         m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Multimedia", (2986344443, "29-Jan-2023 03:21"));
+        m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Samplers", (2949853999, "05-Feb-2025 05:19"));
+        m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Samplers/%5BBIN%5D", (456969420, "29-Jan-2023 03:23"));
 }

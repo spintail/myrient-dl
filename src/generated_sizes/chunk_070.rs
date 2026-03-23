@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_070(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBTHEENDODEE8000", (30791731, "04-Oct-2025 21:48"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBTHEENDODEE8000/songs", (30791731, "04-Oct-2025 21:48"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBTHEENDODEE8000/songs/theendofheartache", (30791731, "11-Feb-2024 01:51"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBTHEENDOFTHEGAM", (19345885, "04-Oct-2025 21:48"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBTHEENDOFTHEGAM/songs", (19345885, "04-Oct-2025 21:48"));
@@ -503,4 +501,6 @@ pub fn fill_070(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBWELCOMETOMYLIF/songs/welcometomylife", (20234512, "11-Feb-2024 03:19"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBWELCOMETOT2107", (15850947, "04-Oct-2025 21:50"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBWELCOMETOT2107/songs", (15850947, "04-Oct-2025 21:50"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBWELCOMETOT2107/songs/welcometothe", (15850947, "11-Feb-2024 03:19"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-RBWEREANACCFF162", (29259305, "04-Oct-2025 21:50"));
 }

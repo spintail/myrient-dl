@@ -426,7 +426,7 @@ pub fn fill_007(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/md_", (26137540956, "03-Sep-2025 06:15"));
         m.insert("Internet%20Archive/md_/mdplus_collection_22_04_16", (26137540956, "26-Aug-2023 08:37"));
         m.insert("Internet%20Archive/mdashk", (124016905560, "07-Sep-2025 05:35"));
-        m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo", (124016905560, "29-Mar-2023 01:45"));
+        m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo", (124016905560, "03-Sep-2025 09:58"));
         m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo/Rock%20Band%20DLC%202007", (955986737, "29-Mar-2023 17:03"));
         m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo/Rock%20Band%20DLC%202008", (9679824691, "29-Mar-2023 17:38"));
         m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo/Rock%20Band%20DLC%202009", (12882699855, "21-Mar-2023 01:39"));
@@ -455,7 +455,7 @@ pub fn fill_007(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo/Rock%20Band%20Exportations%20and%20Justice%20for%20All", (60293120, "24-Mar-2023 04:36"));
         m.insert("Internet%20Archive/mdashk/rock-band-dlc-complete-collection-xbox-360-by-americo/Rock%20Band%20Network%20DLC%20Complete", (60562403505, "25-Mar-2023 02:56"));
         m.insert("Internet%20Archive/megaarch1996", (59368595695, "29-Sep-2025 01:25"));
-        m.insert("Internet%20Archive/megaarch1996/3-pigs-and-a-baby-2008", (894958157, "12-Feb-2021 14:52"));
+        m.insert("Internet%20Archive/megaarch1996/3-pigs-and-a-baby-2008", (894958157, "29-Sep-2025 00:24"));
         m.insert("Internet%20Archive/megaarch1996/3-pigs-and-a-baby-2008/3%20Pigs%20and%20a%20Baby%20%282008%29", (891499315, "13-Oct-2020 01:56"));
         m.insert("Internet%20Archive/megaarch1996/3-pigs-and-a-baby-2008/3-pigs-and-a-baby-2008.thumbs", (3403440, "29-Sep-2025 00:24"));
         m.insert("Internet%20Archive/megaarch1996/3-pigs-and-a-baby-2008/3-pigs-and-a-baby-2008.thumbs/3%20Pigs%20and%20a%20Baby%20%282008%29", (3403440, "13-Oct-2020 02:56"));
@@ -468,7 +468,7 @@ pub fn fill_007(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/megaarch1996/commodore-64-romset-us", (12746535, "03-Jan-2021 23:49"));
         m.insert("Internet%20Archive/megaarch1996/commodore-amiga-romset-us", (166912124, "04-Jan-2021 00:29"));
         m.insert("Internet%20Archive/megaarch1996/fav-megaarch1996", (13387, "12-May-2025 05:13"));
-        m.insert("Internet%20Archive/megaarch1996/hazbin-hotel-pilot", (1332307033, "03-Jan-2021 21:30"));
+        m.insert("Internet%20Archive/megaarch1996/hazbin-hotel-pilot", (1332307033, "29-Sep-2025 00:35"));
         m.insert("Internet%20Archive/megaarch1996/hazbin-hotel-pilot/hazbin-hotel-pilot.thumbs", (1620162, "03-Jan-2021 21:25"));
         m.insert("Internet%20Archive/megaarch1996/magic-engine-1.1.3-full-key.-7z", (1694192, "11-Oct-2020 21:32"));
         m.insert("Internet%20Archive/megaarch1996/my-recorded-v-tech-songs", (12911763, "30-Aug-2020 02:53"));
@@ -481,7 +481,7 @@ pub fn fill_007(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-flashback-2018-us-full-set-v2", (1181317322, "16-Dec-2021 17:57"));
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-flashback-2018-us-full-set-v3", (43464615440, "30-Jan-2022 23:06"));
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-flashback-manual-2018", (5978043, "16-Dec-2021 22:41"));
-        m.insert("Internet%20Archive/megaarch1996/sega-genesis-romset-ultra-usa", (1342315266, "17-Nov-2020 03:01"));
+        m.insert("Internet%20Archive/megaarch1996/sega-genesis-romset-ultra-usa", (1342315266, "29-Sep-2025 00:59"));
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-romset-ultra-usa/%5BPrototypes%5D", (25546017, "17-Nov-2020 05:42"));
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-romset-ultra-usa/%5BTranslations%5D", (6457338, "17-Nov-2020 05:49"));
         m.insert("Internet%20Archive/megaarch1996/sega-genesis-romset-ultra-usa/Rare%20Games", (58823850, "17-Nov-2020 05:56"));
@@ -489,18 +489,18 @@ pub fn fill_007(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/megaarch1996/sega-master-system-romset-ultra-us", (17530094, "03-Jan-2021 21:43"));
         m.insert("Internet%20Archive/megaarch1996/smw_soundfont", (252954, "07-Nov-2020 05:08"));
         m.insert("Internet%20Archive/megaarch1996/snk-neo-geo_romset-v2", (1842578087, "23-Aug-2024 03:09"));
-        m.insert("Internet%20Archive/megaarch1996/sonic-cd-Plus-Plus", (252665601, "08-Oct-2021 01:08"));
+        m.insert("Internet%20Archive/megaarch1996/sonic-cd-Plus-Plus", (252665601, "29-Sep-2025 01:00"));
         m.insert("Internet%20Archive/megaarch1996/sonic-cd-Plus-Plus/Sonic%20CD%20Plus%20Plus%20%28USA%29%20%28JP~EU%20Music%29", (252200604, "08-Oct-2021 01:00"));
         m.insert("Internet%20Archive/megaarch1996/super-mario-cd-jp-soundtrack", (249088386, "05-Jul-2022 02:40"));
         m.insert("Internet%20Archive/megaarch1996/super-mario-cd-soundfont-both-versions", (4212940, "18-May-2020 17:47"));
         m.insert("Internet%20Archive/megaarch1996/super-mario-cd-soundfonts-v2", (138652056, "05-Jul-2022 02:53"));
         m.insert("Internet%20Archive/megaarch1996/super-mario-cd-us-soundtrack", (154187872, "05-Jul-2022 02:43"));
         m.insert("Internet%20Archive/megaarch1996/turbo-grafx-16-soundfont", (144243, "03-Oct-2020 21:16"));
-        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us", (29467982, "17-Nov-2020 01:12"));
-        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us/TurboGrafx-16%20%28USA%29", (22050981, "17-Nov-2020 00:00"));
-        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us/TurboGrafx-16%20%28USA%29/TurboGrafx-16%20Bios", (554188, "17-Nov-2020 00:13"));
+        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us", (29467982, "29-Sep-2025 01:01"));
+        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us/TurboGrafx-16%20%28USA%29", (22050981, "29-Sep-2025 01:01"));
+        m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us/TurboGrafx-16%20%28USA%29/TurboGrafx-16%20Bios", (554188, "29-Sep-2025 01:01"));
         m.insert("Internet%20Archive/megaarch1996/turbografx-16-romset-us/TurboGrafx-16%20%28USA%29/TurboGrafx-16%20Bios/%5BBIOS%5D%20TurboGrafx%20CD%20Super%20System%20Card%20%28USA%29%20%28v3.0%29", (262144, "17-Nov-2020 00:13"));
         m.insert("Internet%20Archive/pixelspoil", (312196097830, "06-Sep-2025 19:17"));
-        m.insert("Internet%20Archive/pixelspoil/NCubeJ", (312196097830, "12-Feb-2016 08:55"));
+        m.insert("Internet%20Archive/pixelspoil/NCubeJ", (312196097830, "06-Sep-2025 19:18"));
         m.insert("Internet%20Archive/pixelspoil/NCubeJ/NCubeJ.thumbs", (591589, "12-Feb-2016 09:12"));
 }

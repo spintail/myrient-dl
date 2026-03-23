@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_088(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC/Acorn/Archimedes/Miscellaneous", (2006424, "18-Feb-2025 06:10"));
-        m.insert("TOSEC/Acorn/Archimedes/Operating%20Systems", (406630, "18-Feb-2025 06:10"));
         m.insert("TOSEC/Acorn/Atom", (37806609, "16-Oct-2025 16:50"));
         m.insert("TOSEC/Acorn/Atom/Applications", (16485, "18-Feb-2025 06:10"));
         m.insert("TOSEC/Acorn/Atom/Compilations", (59389, "16-Oct-2025 16:50"));
@@ -503,4 +501,6 @@ pub fn fill_088(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Atari/2600%20%26%20VCS/Demos/%5BMP3%5D", (45875, "18-Feb-2025 07:26"));
         m.insert("TOSEC/Atari/2600%20%26%20VCS/Educational", (140067, "04-May-2025 05:48"));
         m.insert("TOSEC/Atari/2600%20%26%20VCS/Firmware", (1006179, "18-Feb-2025 07:26"));
+        m.insert("TOSEC/Atari/2600%20%26%20VCS/Games", (4184692, "04-May-2025 05:48"));
+        m.insert("TOSEC/Atari/2600%20%26%20VCS/Homebrew", (8452502, "16-Oct-2025 16:54"));
 }

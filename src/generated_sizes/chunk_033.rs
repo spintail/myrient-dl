@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_033(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/rhapsody", (504155340, "02-Mar-2026 09:27"));
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/rise2dc", (773639372, "28-Sep-2025 19:47"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/roadrashi", (432327884, "28-Sep-2025 20:22"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/robotronx", (422261555, "30-Nov-2025 21:06"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/s3drv21", (144808345, "28-Sep-2025 19:36"));
@@ -503,4 +501,6 @@ pub fn fill_033(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/neocd/overtop", (341311488, "28-Sep-2025 15:02"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/neocd/pbobble", (1048576, "28-Sep-2025 14:43"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/neocd/pgoal", (409888358, "28-Sep-2025 17:06"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/neocd/pspikes2", (275880345, "28-Sep-2025 17:06"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/neocd/pulstar", (353684684, "28-Sep-2025 15:36"));
 }

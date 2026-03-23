@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_022(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/CHDs%20%28merged%29/photoply2k2be", (787585433, "28-Sep-2025 08:16"));
-        m.insert("MAME/CHDs%20%28merged%29/photoply2k4", (659239731, "28-Sep-2025 07:07"));
         m.insert("MAME/CHDs%20%28merged%29/photoply98sp", (842425958, "28-Sep-2025 09:03"));
         m.insert("MAME/CHDs%20%28merged%29/photoply99sp", (1576114584, "28-Sep-2025 07:05"));
         m.insert("MAME/CHDs%20%28merged%29/photopsxsp", (10737418239, "28-Sep-2025 08:30"));
@@ -503,4 +501,6 @@ pub fn fill_022(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jaguar", (7051479, "28-Sep-2025 13:24"));
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_dp", (31129, "28-Sep-2025 13:24"));
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_dy", (75263, "28-Sep-2025 13:24"));
+        m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_mv", (12492, "28-Sep-2025 13:24"));
+        m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_nk", (70143, "28-Sep-2025 13:24"));
 }

@@ -7,12 +7,10 @@ use eframe::egui::{self, Color32, FontId, RichText, Stroke, Vec2};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
+use std::io::Write;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
-
 const BASE_URL:   &str = "https://myrient.erista.me/files/";
 const DONATE_URL: &str = "https://myrient.erista.me/donate/";
 
@@ -227,13 +225,42 @@ enum DlCmd { Start(QueueJob, String, usize, u32, bool), Cancel(String), SetConcu
 //                                          ^^^^ max_retries, verify_checksums
 
 // ── Shared state ──────────────────────────────────────────────────────────────
-#[derive(Default)]
 struct Shared {
     browse_result:       Option<(String, Result<Vec<DirEntry>, String>)>,
     queue:               Vec<QueueJob>,
     progress:            HashMap<String, DownloadProgress>,
     active_dl:           usize,
     newly_completed:     Vec<String>,
+    // Mirror of current settings — written by UI thread, read by download manager
+    // so the manager can self-kick without waiting for a UI repaint.
+    dl_settings:         DlSettings,
+}
+
+#[derive(Clone)]
+struct DlSettings {
+    dest:        String,
+    concurrent:  usize,
+    max_retries: u32,
+    verify:      bool,
+    paused:      bool,
+}
+impl Default for Shared {
+    fn default() -> Self {
+        Self {
+            browse_result:   None,
+            queue:           Vec::new(),
+            progress:        HashMap::new(),
+            active_dl:       0,
+            newly_completed: Vec::new(),
+            dl_settings:     DlSettings {
+                dest:        shellexpand::tilde("~/Downloads/myrient").to_string(),
+                concurrent:  4,
+                max_retries: 3,
+                verify:      true,
+                paused:      true,
+            },
+        }
+    }
 }
 impl Shared {
     fn push_log(&mut self, _msg: impl Into<String>, _is_err: bool) {
@@ -253,23 +280,25 @@ fn path_to_dir_key(path: &str) -> &str {
 /// otherwise fall back to an HTTP request.
 fn fetch_directory(url: &str, rel_path: &str) -> Result<Vec<DirEntry>, String> {
     let key = path_to_dir_key(rel_path);
-    if let Some(range) = generated_dirs::dir_index().get(key) {
-        let entries = generated_dirs::DIR_ENTRIES[range.clone()].iter().map(|&(name, href, size, date, is_folder, _)| {
-            let file_url: Option<Arc<str>> = if !is_folder {
-                reqwest::Url::parse(url).ok()
-                    .and_then(|b| b.join(href).ok())
-                    .map(|u| Arc::from(u.as_str()))
-            } else { None };
-            DirEntry {
-                name:      Arc::from(name),
-                href:      Arc::from(href),
-                size:      Arc::from(if size == "-" { "" } else { size }),
-                date:      Arc::from(date),
-                is_folder,
-                url:       file_url,
-            }
-        }).collect();
-        return Ok(entries);
+    if let Some(baked) = generated_dirs::lookup(key) {
+        if !baked.is_empty() {
+            let entries = baked.into_iter().map(|e| {
+                let file_url: Option<Arc<str>> = if !e.is_folder {
+                    reqwest::Url::parse(url).ok()
+                        .and_then(|b| b.join(&e.href).ok())
+                        .map(|u| Arc::from(u.as_str()))
+                } else { None };
+                DirEntry {
+                    name:      Arc::from(e.name.as_str()),
+                    href:      Arc::from(e.href.as_str()),
+                    size:      Arc::from(if e.size == "-" { "" } else { e.size.as_str() }),
+                    date:      Arc::from(e.date.as_str()),
+                    is_folder: e.is_folder,
+                    url:       file_url,
+                }
+            }).collect();
+            return Ok(entries);
+        }
     }
     fetch_directory_http(url)
 }
@@ -376,53 +405,9 @@ fn parse_size_str(s: &str) -> u64 {
     (num * mult as f64) as u64
 }
 
-/// Parse wget speed like "1.23M", "456K", "12.3G"
-fn parse_wget_speed(s: &str) -> f64 {
-    let s = s.trim();
-    let (n, mult) = if let Some(v) = s.strip_suffix('G') { (v, 1e9) }
-        else if let Some(v) = s.strip_suffix('M') { (v, 1e6) }
-        else if let Some(v) = s.strip_suffix('K') { (v, 1e3) }
-        else { (s, 1.0) };
-    n.parse::<f64>().unwrap_or(0.0) * mult
-}
-
-/// Parse wget ETA like "45s", "3m20s", "1h5m"
-fn parse_wget_eta(s: &str) -> u64 {
-    let s = s.trim();
-    let mut secs = 0u64;
-    let mut acc  = String::new();
-    for ch in s.chars() {
-        match ch {
-            '0'..='9' => acc.push(ch),
-            'h' => { secs += acc.parse::<u64>().unwrap_or(0) * 3600; acc.clear(); }
-            'm' => { secs += acc.parse::<u64>().unwrap_or(0) * 60;   acc.clear(); }
-            's' => { secs += acc.parse::<u64>().unwrap_or(0);        acc.clear(); }
-            _   => {}
-        }
-    }
-    secs
-}
-
-/// Parse wget --progress=dot:mega line → (percent, speed_bps, eta_secs)
-fn parse_wget_progress(line: &str) -> Option<(f32, f64, u64)> {
-    let tokens: Vec<&str> = line.split_whitespace().collect();
-    for (i, tok) in tokens.iter().enumerate() {
-        if tok.ends_with('%') {
-            if let Ok(p) = tok.trim_end_matches('%').parse::<f32>() {
-                let speed = tokens.get(i+1).map(|s| parse_wget_speed(s)).unwrap_or(0.0);
-                let eta   = tokens.get(i+2).map(|s| parse_wget_eta(s)).unwrap_or(0);
-                return Some((p, speed, eta));
-            }
-        }
-    }
-    None
-}
-
 // ── Disk space check ──────────────────────────────────────────────────────────
 fn free_bytes(path: &str) -> Option<u64> {
-    use nix::sys::statvfs::statvfs;
-    let p = std::path::Path::new(path);
-    let mut p = p;
+    let mut p = std::path::Path::new(path);
     let tmp;
     loop {
         if p.exists() { break; }
@@ -431,7 +416,42 @@ fn free_bytes(path: &str) -> Option<u64> {
             None => return None,
         }
     }
-    statvfs(p).ok().map(|s| s.blocks_available() * s.block_size() as u64)
+
+    #[cfg(unix)]
+    {
+        use std::mem::MaybeUninit;
+        use std::ffi::CString;
+        let cpath = CString::new(p.to_str()?).ok()?;
+        unsafe {
+            let mut stat: MaybeUninit<libc::statvfs> = MaybeUninit::uninit();
+            if libc::statvfs(cpath.as_ptr(), stat.as_mut_ptr()) == 0 {
+                let s = stat.assume_init();
+                return Some(s.f_bavail as u64 * s.f_frsize as u64);
+            }
+        }
+        None
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        let wide: Vec<u16> = p.as_os_str().encode_wide().chain(Some(0)).collect();
+        let mut free_bytes = 0u64;
+        unsafe {
+            if windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW(
+                wide.as_ptr(),
+                &mut free_bytes,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            ) != 0 {
+                return Some(free_bytes);
+            }
+        }
+        None
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    None
 }
 
 // ── Checksum verification ─────────────────────────────────────────────────────
@@ -528,130 +548,167 @@ fn url_decode(s: &str) -> String {
 // ── Download manager ──────────────────────────────────────────────────────────
 fn download_manager(rx: std::sync::mpsc::Receiver<DlCmd>, shared: Arc<Mutex<Shared>>) {
     let mut procs: HashMap<String, std::sync::mpsc::Sender<()>> = HashMap::new();
-    let mut concurrent     = 4usize;
-    let mut sem            = Arc::new(Semaphore::new(concurrent));
+    let mut concurrent = 4usize;
+    let mut sem        = Arc::new(Semaphore::new(concurrent));
 
-    for cmd in rx {
-        match cmd {
-            DlCmd::Shutdown => break,
-            DlCmd::Cancel(id) => { if let Some(tx) = procs.remove(&id) { let _ = tx.send(()); } }
-            DlCmd::SetConcurrent(n) => {
-                concurrent = n;
-                sem = Arc::new(Semaphore::new(concurrent));
+    // Kick waiting jobs up to the concurrency limit using current dl_settings.
+    let do_kick = |shared: &Arc<Mutex<Shared>>,
+                   procs:  &mut HashMap<String, std::sync::mpsc::Sender<()>>,
+                   sem:    &Arc<Semaphore>,
+                   conc:   usize| {
+        let (settings, jobs): (DlSettings, Vec<QueueJob>) = {
+            let s = shared.lock().unwrap();
+            if s.dl_settings.paused { return; }
+            let active = s.queue.iter().filter(|j| j.status.is_active()).count();
+            let slots  = conc.saturating_sub(active);
+            if slots == 0 { return; }
+            let mut waiting: Vec<&QueueJob> = s.queue.iter()
+                .filter(|j| j.status == JobStatus::Waiting)
+                .collect();
+            waiting.sort_by_key(|j| if j.resume { 0u8 } else { 1u8 });
+            (s.dl_settings.clone(), waiting.into_iter().take(slots).cloned().collect())
+        };
+        for job in jobs {
+            if procs.contains_key(&job.id) { continue; }
+            {
+                let mut s = shared.lock().unwrap();
+                if s.queue.iter().find(|j| j.id == job.id)
+                    .map(|j| j.status.is_active()).unwrap_or(false) { continue; }
+                if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) { j.status = JobStatus::Spooling; }
+                s.progress.insert(job.id.clone(), DownloadProgress { spool_start: Some(Instant::now()), ..Default::default() });
+                s.active_dl += 1;
+                save_queue(&s.queue);
             }
-            DlCmd::Start(job, dest, conc, max_retries, verify) => {
-                if conc != concurrent {
-                    concurrent = conc;
-                    sem = Arc::new(Semaphore::new(concurrent));
-                }
+            let (kill_tx, kill_rx) = std::sync::mpsc::channel::<()>();
+            procs.insert(job.id.clone(), kill_tx);
+            let shared2 = Arc::clone(shared);
+            let sem2    = Arc::clone(sem);
+            let dest2   = settings.dest.clone();
+            let retries = settings.max_retries;
+            let verify  = settings.verify;
+            thread::spawn(move || {
+                let _permit = sem2.acquire();
                 {
-                    let s = shared.lock().unwrap();
-                    if s.queue.iter().find(|j| j.id == job.id)
-                        .map(|j| j.status.is_active()).unwrap_or(false) { continue; }
-                }
-                {
-                    let mut s = shared.lock().unwrap();
+                    let mut s = shared2.lock().unwrap();
                     if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                        j.status = JobStatus::Spooling;
+                        if j.status == JobStatus::Spooling { j.status = JobStatus::Downloading; }
                     }
-                    s.progress.insert(job.id.clone(), DownloadProgress {
-                        spool_start: Some(Instant::now()), ..Default::default()
-                    });
-                    s.active_dl += 1;
-                    s.push_log(format!("Starting: {}", job.name), false);
-                    save_queue(&s.queue);
+                    if let Some(p) = s.progress.get_mut(&job.id) { p.spool_start = None; }
                 }
-
-                let (kill_tx, kill_rx) = std::sync::mpsc::channel::<()>();
-                procs.insert(job.id.clone(), kill_tx);
-
-                let shared2 = Arc::clone(&shared);
-                let sem2    = Arc::clone(&sem);
-                let dest2   = dest.clone();
-
-                thread::spawn(move || {
-                    let _permit = sem2.acquire();
-
-                    {
+                let estimated = estimated_size(&job.url);
+                if let Some(free) = free_bytes(&dest2) {
+                    if estimated > 0 && free < estimated + estimated / 10 {
+                        shared2.lock().unwrap().push_log(format!("⚠ Low disk space for {}", job.name), true);
+                    }
+                }
+                let final_status = run_with_retries(&job, &dest2, &shared2, &kill_rx, retries);
+                if verify && final_status == JobStatus::Done {
+                    let dest_file = guess_dest_path(&dest2, &job.url);
+                    if let Some(ref path) = dest_file {
+                        { let mut s = shared2.lock().unwrap(); if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) { j.status = JobStatus::Verifying; } }
+                        let verified = verify_file(path, &job.url);
                         let mut s = shared2.lock().unwrap();
                         if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                            if j.status == JobStatus::Spooling { j.status = JobStatus::Downloading; }
-                        }
-                        if let Some(p) = s.progress.get_mut(&job.id) { p.spool_start = None; }
-                    }
-
-                    // Disk space check
-                    let estimated = estimated_size(&job.url);
-                    if let Some(free) = free_bytes(&dest2) {
-                        if estimated > 0 && free < estimated + estimated / 10 {
-                            let mut s = shared2.lock().unwrap();
-                            s.push_log(format!("⚠ Low disk space for {}: need ~{}, have {}",
-                                job.name, fmt_size(estimated), fmt_size(free)), true);
-                        }
-                    }
-
-                    let final_status = run_with_retries(&job, &dest2, &shared2, &kill_rx, max_retries);
-
-                    // Checksum verification
-                    if verify && final_status == JobStatus::Done {
-                        let dest_file = guess_dest_path(&dest2, &job.url);
-                        if let Some(ref path) = dest_file {
-                            {
-                                let mut s = shared2.lock().unwrap();
-                                if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                                    j.status = JobStatus::Verifying;
-                                }
-                            }
-                            let verified = verify_file(path, &job.url);
-                            let mut s = shared2.lock().unwrap();
-                            if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                                j.verified = verified;
-                                j.status   = JobStatus::Done;
-                                match verified {
-                                    Some(true)  => s.push_log(format!("✓ Verified: {}", job.name), false),
-                                    Some(false) => s.push_log(format!("⚠ Checksum FAIL: {}", job.name), true),
-                                    None        => {}
-                                }
-                            }
-                        } else {
-                            // Can't find the file to verify — mark Done anyway so it doesn't get stuck
-                            let mut s = shared2.lock().unwrap();
-                            if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                                j.status = JobStatus::Done;
+                            j.verified = verified; j.status = JobStatus::Done;
+                            match verified {
+                                Some(true)  => s.push_log(format!("✓ Verified: {}", job.name), false),
+                                Some(false) => s.push_log(format!("⚠ Checksum FAIL: {}", job.name), true),
+                                None => {}
                             }
                         }
                     } else {
                         let mut s = shared2.lock().unwrap();
-                        if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
-                            let paused = j.status == JobStatus::Paused;
-                            if !paused { j.status = final_status.clone(); }
-                            if !paused {
-                                let is_done = final_status == JobStatus::Done;
-                                s.push_log(if is_done {
-                                    format!("Done: {}", job.name)
-                                } else {
-                                    format!("Failed: {} ({:?})", job.name, final_status)
-                                }, !is_done);
+                        if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) { j.status = JobStatus::Done; }
+                    }
+                } else {
+                    let mut s = shared2.lock().unwrap();
+                    if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
+                        let paused = j.status == JobStatus::Paused;
+                        if !paused { j.status = final_status.clone(); }
+                        if !paused { s.push_log(if final_status == JobStatus::Done { format!("Done: {}", job.name) } else { format!("Failed: {}", job.name) }, final_status != JobStatus::Done); }
+                    }
+                }
+                {
+                    let mut s = shared2.lock().unwrap();
+                    s.progress.remove(&job.id);
+                    s.active_dl = s.active_dl.saturating_sub(1);
+                    if matches!(s.queue.iter().find(|j| j.id == job.id).map(|j| &j.status), Some(JobStatus::Done)) {
+                        s.newly_completed.push(job.url.clone());
+                    }
+                    s.queue.retain(|j| !matches!(j.status, JobStatus::Done));
+                    save_queue(&s.queue);
+                    // Persist the downloaded URL immediately — don't wait for the UI thread
+                    let completed_url = job.url.clone();
+                    let downloaded_path = {
+                        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+                        std::path::PathBuf::from(
+                            std::env::var("XDG_DATA_HOME").unwrap_or_else(|_|
+                                format!("{}/.local/share", home)
+                            )
+                        ).join("myrient-dl").join("downloaded.json")
+                    };
+                    // Load, insert, save — all inline in the manager thread
+                    if let Ok(data) = std::fs::read_to_string(&downloaded_path) {
+                        if let Ok(mut set) = serde_json::from_str::<HashSet<String>>(&data) {
+                            set.insert(completed_url);
+                            if let Ok(j) = serde_json::to_string(&set) {
+                                std::fs::write(&downloaded_path, j).ok();
                             }
                         }
-                    }
-
-                    {
-                        let mut s = shared2.lock().unwrap();
-                        s.progress.remove(&job.id);
-                        s.active_dl = s.active_dl.saturating_sub(1);
-                        // Track completed URL for persistent downloaded set
-                        if matches!(s.queue.iter().find(|j| j.id == job.id).map(|j| &j.status),
-                            Some(JobStatus::Done)) {
-                            s.newly_completed.push(job.url.clone());
+                    } else {
+                        // File doesn't exist yet — create it
+                        let mut set = HashSet::new();
+                        set.insert(completed_url);
+                        if let Ok(j) = serde_json::to_string(&set) {
+                            std::fs::write(&downloaded_path, j).ok();
                         }
-                        // Auto-remove completed jobs from the queue
-                        s.queue.retain(|j| !matches!(j.status, JobStatus::Done));
-                        save_queue(&s.queue);
                     }
-                });
+                }
+            });
+        }
+    };
+
+    // Background watcher: self-kick every second so downloads continue
+    // even when the UI window is hidden, minimised, or the screen is locked.
+    {
+        let shared3 = Arc::clone(&shared);
+        let (watcher_tx, watcher_rx) = std::sync::mpsc::channel::<()>();
+        // We send a unit on watcher_tx each time the manager processes a command,
+        // so the watcher knows the manager is alive.
+        // Simpler: just spawn a thread that sends Kick commands on the main rx.
+        // We use a separate channel for that.
+        let _ = watcher_tx; // suppress warning — used structurally below
+        let _ = watcher_rx;
+        // Actually: just run the watcher inline below by making the manager loop
+        // also respond to a timer. We do this by making rx.recv() timeout-based.
+        let _ = shared3; // used in the recv_timeout loop below
+    }
+
+    // Use recv_timeout so the manager wakes up every second to self-kick,
+    // regardless of whether the UI is sending commands.
+    loop {
+        match rx.recv_timeout(Duration::from_secs(1)) {
+            Ok(DlCmd::Shutdown) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+            Ok(DlCmd::Cancel(id)) => { if let Some(tx) = procs.remove(&id) { let _ = tx.send(()); } }
+            Ok(DlCmd::SetConcurrent(n)) => {
+                concurrent = n; sem = Arc::new(Semaphore::new(concurrent));
+                do_kick(&shared, &mut procs, &sem, concurrent);
+            }
+            Ok(DlCmd::Start(..)) => {
+                // UI thread sends this to signal "kick now" — settings already in shared.dl_settings
+                concurrent = shared.lock().unwrap().dl_settings.concurrent;
+                do_kick(&shared, &mut procs, &sem, concurrent);
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                // 1-second heartbeat — kick any waiting jobs without UI involvement
+                concurrent = shared.lock().unwrap().dl_settings.concurrent;
+                do_kick(&shared, &mut procs, &sem, concurrent);
             }
         }
+        // Clean up finished proc entries
+        procs.retain(|id, _| {
+            shared.lock().unwrap().queue.iter().any(|j| &j.id == id && j.status.is_active())
+        });
     }
 }
 
@@ -662,8 +719,6 @@ fn run_with_retries(
     kill_rx:     &std::sync::mpsc::Receiver<()>,
     max_retries: u32,
 ) -> JobStatus {
-    // Convert the one-shot kill_rx into a shared flag so we can pass it to threads
-    let killed = Arc::new(Mutex::new(false));
     let mut attempt = job.retry_count;
 
     loop {
@@ -679,11 +734,8 @@ fn run_with_retries(
             thread::sleep(delay);
         }
 
-        // Check kill flag before attempting
+        // Check for cancel before starting
         if kill_rx.try_recv().is_ok() {
-            *killed.lock().unwrap() = true;
-        }
-        if *killed.lock().unwrap() {
             let mut s = shared.lock().unwrap();
             if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
                 j.status = JobStatus::Paused; j.resume = true;
@@ -691,104 +743,155 @@ fn run_with_retries(
             return JobStatus::Paused;
         }
 
-        let mut args = vec![
-            "-r".to_string(), "-np".to_string(), "-nH".to_string(),
-            "--cut-dirs=1".to_string(),
-            "--progress=dot:mega".to_string(),
-            "-P".to_string(), dest.to_string(),
-        ];
-        if job.resume || attempt > 0 { args.push("-c".to_string()); }
-        args.push(job.url.clone());
-
-        let child = Command::new("wget1")
-            .args(&args)
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn();
-
-        let mut child = match child {
-            Ok(c) => c,
-            Err(e) => {
-                let msg = if e.kind() == std::io::ErrorKind::NotFound {
-                    "wget1 not found — is it installed?".to_string()
-                } else { e.to_string() };
+        // ── Native reqwest download ──────────────────────────────────────────
+        // Mirrors wget1 -r -np -nH --cut-dirs=1 -P <dest> [-c] <url>
+        // Path: dest / segs[2..] (segs[0]="files", segs[1]=top-folder, rest=relative)
+        let file_path = match guess_dest_path(dest, &job.url) {
+            Some(p) => p,
+            None => {
+                let msg = format!("Cannot determine output path for {}", job.url);
                 shared.lock().unwrap().push_log(format!("Error: {}", msg), true);
                 return JobStatus::Error(msg);
             }
         };
 
-        // Parse stderr progress in side thread
-        let stderr  = child.stderr.take().unwrap();
-        let shared2 = Arc::clone(shared);
-        let jid     = job.id.clone();
-        let jname   = job.name.clone();
-        thread::spawn(move || {
-            for line in BufReader::new(stderr).lines().map_while(Result::ok) {
-                if let Some((pct, spd, eta)) = parse_wget_progress(&line) {
-                    let mut s = shared2.lock().unwrap();
-                    if let Some(p) = s.progress.get_mut(&jid) {
-                        p.percent = pct; p.speed_bps = spd; p.eta_secs = Some(eta);
-                    }
-                    if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid) {
-                        if j.status == JobStatus::Spooling { j.status = JobStatus::Downloading; }
-                    }
-                    if (pct as u32) % 25 == 0 && pct > 0.0 {
-                        s.push_log(format!("{}: {}% @ {}", jname, pct as u32, fmt_speed(spd)), false);
-                    }
-                }
+        // Create parent directories
+        if let Some(parent) = std::path::Path::new(&file_path).parent() {
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                let msg = format!("Cannot create directory: {}", e);
+                shared.lock().unwrap().push_log(format!("Error: {}", msg), true);
+                return JobStatus::Error(msg);
             }
-        });
-
-        // Kill watcher — polls kill_rx and sets the flag
-        let killed2  = Arc::clone(&killed);
-        let shared3  = Arc::clone(shared);
-        let jid3     = job.id.clone();
-        let (done_tx, done_rx) = std::sync::mpsc::channel::<()>();
-        // We forward the kill signal via a new channel since kill_rx is borrowed
-        let (fwd_tx, fwd_rx) = std::sync::mpsc::channel::<()>();
-        // Forward thread: wait for kill signal and set flag
-        thread::spawn(move || {
-            if fwd_rx.recv().is_ok() {
-                *killed2.lock().unwrap() = true;
-                let mut s = shared3.lock().unwrap();
-                if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid3) {
-                    if j.status.is_active() { j.status = JobStatus::Paused; j.resume = true; }
-                }
-            }
-            let _ = done_tx.send(());
-        });
-
-        // Check kill_rx and forward
-        if kill_rx.try_recv().is_ok() {
-            let _ = fwd_tx.send(());
-        } else {
-            // Spawn a thread that waits for kill then forwards
-            thread::spawn(move || {
-                // This intentionally leaks fwd_tx if the process exits normally — that's fine,
-                // the forward thread will just get a disconnected error and exit
-                drop(fwd_tx); // drop immediately if no kill expected
-            });
         }
 
-        let exit = child.wait();
-        let _ = done_rx.recv_timeout(Duration::from_millis(200));
+        // Check existing size for resume
+        let existing_bytes = if job.resume || attempt > 0 {
+            std::fs::metadata(&file_path).ok().map(|m| m.len()).unwrap_or(0)
+        } else {
+            0
+        };
 
-        let is_paused = *killed.lock().unwrap() ||
-            shared.lock().unwrap().queue.iter()
-                .find(|j| j.id == job.id)
-                .map(|j| j.status == JobStatus::Paused)
-                .unwrap_or(false);
-        if is_paused { return JobStatus::Paused; }
+        // Build request
+        let mut req = CLIENT.get(&job.url);
+        if existing_bytes > 0 {
+            req = req.header("Range", format!("bytes={}-", existing_bytes));
+        }
 
-        match exit {
-            Ok(s) if s.success() => return JobStatus::Done,
-            Ok(s) => {
+        let response = match req.timeout(Duration::from_secs(60)).send() {
+            Ok(r) => r,
+            Err(e) => {
                 attempt += 1;
                 if attempt > max_retries {
-                    return JobStatus::Error(format!("exit {}", s.code().unwrap_or(-1)));
+                    return JobStatus::Error(e.to_string());
+                }
+                continue;
+            }
+        };
+
+        let status = response.status();
+        // 416 = Range Not Satisfiable — file already complete
+        if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+            return JobStatus::Done;
+        }
+        if !status.is_success() {
+            attempt += 1;
+            if attempt > max_retries {
+                return JobStatus::Error(format!("HTTP {}", status));
+            }
+            continue;
+        }
+
+        let is_partial    = status == reqwest::StatusCode::PARTIAL_CONTENT;
+        let total_bytes   = response.content_length()
+            .map(|n| n + if is_partial { existing_bytes } else { 0 });
+
+        // Open file — append for resume, truncate for fresh start
+        let mut file = match if is_partial && existing_bytes > 0 {
+            std::fs::OpenOptions::new().append(true).open(&file_path)
+        } else {
+            std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(&file_path)
+        } {
+            Ok(f) => f,
+            Err(e) => return JobStatus::Error(format!("Cannot open {}: {}", file_path, e)),
+        };
+
+        // Mark as Downloading
+        {
+            let mut s = shared.lock().unwrap();
+            if let Some(j) = s.queue.iter_mut().find(|j| j.id == job.id) {
+                j.status = JobStatus::Downloading;
+            }
+        }
+
+        // Stream body with progress updates
+        let mut downloaded = existing_bytes;
+        let mut last_update = std::time::Instant::now();
+        let mut last_bytes  = existing_bytes;
+        let jid2    = job.id.clone();
+        let jname2  = job.name.clone();
+        let mut response = response;
+
+        let result: Result<(), String> = (|| {
+            use std::io::Read;
+            let mut buf = vec![0u8; 256 * 1024]; // 256 KB chunks
+            loop {
+                // Check cancel
+                if kill_rx.try_recv().is_ok() {
+                    let mut s = shared.lock().unwrap();
+                    if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid2) {
+                        j.status = JobStatus::Paused; j.resume = true;
+                    }
+                    return Err("cancelled".into());
+                }
+
+                let n = response.read(&mut buf).map_err(|e| e.to_string())?;
+                if n == 0 { break; }
+
+                file.write_all(&buf[..n]).map_err(|e| e.to_string())?;
+                downloaded += n as u64;
+
+                // Update progress ~4x/sec
+                let now = std::time::Instant::now();
+                let elapsed = now.duration_since(last_update).as_secs_f64();
+                if elapsed >= 0.25 {
+                    let bps   = (downloaded - last_bytes) as f64 / elapsed;
+                    let pct   = total_bytes.map(|t| downloaded as f32 / t as f32 * 100.0).unwrap_or(0.0);
+                    let eta   = if bps > 0.0 {
+                        total_bytes.map(|t| ((t.saturating_sub(downloaded)) as f64 / bps) as u64)
+                    } else { None };
+                    {
+                        let mut s = shared.lock().unwrap();
+                        if let Some(p) = s.progress.get_mut(&jid2) {
+                            p.percent   = pct.min(100.0);
+                            p.speed_bps = bps;
+                            p.eta_secs  = eta;
+                        }
+                    }
+                    last_update = now;
+                    last_bytes  = downloaded;
                 }
             }
-            Err(e) => return JobStatus::Error(e.to_string()),
+            Ok(())
+        })();
+
+        match result {
+            Err(e) if e == "cancelled" => return JobStatus::Paused,
+            Err(e) => {
+                attempt += 1;
+                if attempt > max_retries { return JobStatus::Error(e); }
+                continue;
+            }
+            Ok(()) => {
+                // Final 100% progress update
+                {
+                    let mut s = shared.lock().unwrap();
+                    if let Some(p) = s.progress.get_mut(&job.id) {
+                        p.percent = 100.0; p.speed_bps = 0.0; p.eta_secs = Some(0);
+                    }
+                    s.push_log(format!("Done: {}", jname2), false);
+                }
+                return JobStatus::Done;
+            }
         }
     }
 }
@@ -839,6 +942,8 @@ struct App {
     folder_pick_tx:       std::sync::mpsc::Sender<Option<String>>,
     folder_pick_rx:       std::sync::mpsc::Receiver<Option<String>>,
     filter_query:         String,
+    search_query:         String,   // global cross-directory search
+    search_open:          bool,
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
@@ -857,6 +962,15 @@ impl App {
             s.queue = saved;
             let n = s.queue.len();
             if n > 0 { s.push_log(format!("Loaded {} queued item(s) from disk", n), false); }
+            // Initialise dl_settings from persisted settings so manager has correct values immediately
+            let dest = shellexpand::tilde(&settings.dest_path).to_string();
+            s.dl_settings = DlSettings {
+                dest,
+                concurrent:  settings.concurrent,
+                max_retries: settings.max_retries,
+                verify:      settings.verify_checksums,
+                paused:      settings.queue_paused,
+            };
         }
 
         let (dl_tx, dl_rx) = std::sync::mpsc::channel::<DlCmd>();
@@ -881,6 +995,8 @@ impl App {
             status_active: false,
             dl_tx, folder_pick_tx: fp_tx, folder_pick_rx: fp_rx,
             filter_query:  String::new(),
+            search_query:  String::new(),
+            search_open:   false,
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
@@ -956,6 +1072,16 @@ impl App {
         if self.settings_dirty {
             save_settings(&self.settings);
             self.settings_dirty = false;
+            // Keep dl_settings in sync so the manager thread always has current values
+            let dest = shellexpand::tilde(&self.settings.dest_path).to_string();
+            let mut s = self.shared.lock().unwrap();
+            s.dl_settings = DlSettings {
+                dest,
+                concurrent:  self.settings.concurrent,
+                max_retries: self.settings.max_retries,
+                verify:      self.settings.verify_checksums,
+                paused:      self.settings.queue_paused,
+            };
         }
 
         // Drain newly completed URLs into the persistent downloaded set
@@ -1011,25 +1137,24 @@ impl App {
     fn kick_downloads(&mut self) {
         let dest = shellexpand::tilde(&self.settings.dest_path).to_string();
         if std::fs::create_dir_all(&dest).is_err() { return; }
-        let conc    = self.settings.concurrent;
-        let retries = self.settings.max_retries;
-        let verify  = self.settings.verify_checksums;
-        let (active, jobs): (usize, Vec<QueueJob>) = {
-            let s = self.shared.lock().unwrap();
-            let active = s.queue.iter().filter(|j| j.status.is_active()).count();
-            let slots  = conc.saturating_sub(active);
-            // Resume jobs (from previous session) first, then fresh Waiting jobs
-            let mut waiting: Vec<&QueueJob> = s.queue.iter()
-                .filter(|j| j.status == JobStatus::Waiting)
-                .collect();
-            waiting.sort_by_key(|j| if j.resume { 0u8 } else { 1u8 });
-            let jobs = waiting.into_iter().take(slots).cloned().collect();
-            (active, jobs)
-        };
-        if active >= conc { return; }
-        for job in jobs {
-            let _ = self.dl_tx.send(DlCmd::Start(job, dest.clone(), conc, retries, verify));
+        // Sync current settings into shared so the manager thread can self-kick
+        // independently of the UI (survives screen lock, minimise, etc.)
+        {
+            let mut s = self.shared.lock().unwrap();
+            s.dl_settings = DlSettings {
+                dest:        dest,
+                concurrent:  self.settings.concurrent,
+                max_retries: self.settings.max_retries,
+                verify:      self.settings.verify_checksums,
+                paused:      self.settings.queue_paused,
+            };
         }
+        // Signal the manager to kick now (it will also kick every second on its own)
+        let _ = self.dl_tx.send(DlCmd::Start(
+            QueueJob { id: String::new(), url: String::new(), name: String::new(),
+                       path: String::new(), status: JobStatus::Waiting, resume: false,
+                       retry_count: 0, verified: None, file_size: 0 },
+            String::new(), 0, 0, false));
     }
 
     fn toggle_folder_selected(&mut self, folder_href: String) {
@@ -1041,18 +1166,13 @@ impl App {
     }
 
     fn resume_job(&mut self, id: &str) {
-        let dest = shellexpand::tilde(&self.settings.dest_path).to_string();
-        let conc  = self.settings.concurrent;
-        let ret   = self.settings.max_retries;
-        let ver   = self.settings.verify_checksums;
-        let job   = {
+        {
             let mut s = self.shared.lock().unwrap();
             if let Some(j) = s.queue.iter_mut().find(|j| j.id == id) {
                 j.status = JobStatus::Waiting; j.resume = true;
-                Some(j.clone())
-            } else { None }
-        };
-        if let Some(j) = job { let _ = self.dl_tx.send(DlCmd::Start(j, dest, conc, ret, ver)); }
+            }
+        }
+        self.kick_downloads();
     }
 
     fn remove_from_queue(&mut self, id: &str) {
@@ -1155,6 +1275,22 @@ fn setup_fonts(ctx: &egui::Context) {
         (egui::TextStyle::Button,    FontId::monospace(11.0)),
         (egui::TextStyle::Heading,   FontId::monospace(14.0)),
     ].into();
+    // Wide, always-visible scrollbars — much easier to grab on Windows/macOS
+    style.spacing.scroll = egui::style::ScrollStyle {
+        bar_width:                   10.0,
+        handle_min_length:           24.0,
+        bar_inner_margin:            2.0,
+        bar_outer_margin:            0.0,
+        floating:                    false,
+        floating_allocated_width:    0.0,
+        dormant_background_opacity:  1.0,
+        active_background_opacity:   1.0,
+        interact_background_opacity: 1.0,
+        dormant_handle_opacity:      0.7,
+        active_handle_opacity:       1.0,
+        interact_handle_opacity:     1.0,
+        ..Default::default()
+    };
     ctx.set_style(style);
 }
 
@@ -1522,6 +1658,104 @@ impl App {
                 });
             hline(ui);
 
+            // Search bar (shown when toggled open, or always show a compact toggle)
+            egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 4.0))
+                .show(ui, |ui: &mut egui::Ui| {
+                    ui.set_min_height(24.0);
+                    ui.horizontal(|ui: &mut egui::Ui| {
+                        let search_active = !self.search_query.is_empty();
+                        let btn_col = if search_active { C_ACC } else { C_MUTED };
+                        if ui.add(egui::Button::new(mono("⌕ search", 9.0, btn_col))
+                            .fill(Color32::TRANSPARENT).frame(false))
+                            .clicked() {
+                            self.search_open = !self.search_open;
+                            if !self.search_open { self.search_query.clear(); }
+                        }
+                        if self.search_open {
+                            ui.add_space(6.0);
+                            let resp = ui.add(
+                                egui::TextEdit::singleline(&mut self.search_query)
+                                    .font(FontId::monospace(11.0))
+                                    .desired_width(ui.available_width() - 40.0)
+                                    .hint_text("search all folders…")
+                                    .text_color(C_TEXT)
+                            );
+                            if resp.gained_focus() { }
+                            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                                self.search_query.clear();
+                                self.search_open = false;
+                            }
+                            if search_active {
+                                ui.add_space(4.0);
+                                if ui.add(egui::Button::new(mono("✕", 9.0, C_MUTED)).frame(false)).clicked() {
+                                    self.search_query.clear();
+                                    self.search_open = false;
+                                }
+                            }
+                        }
+                    });
+                });
+
+            // Search results panel (shown when query is non-empty)
+            if !self.search_query.is_empty() {
+                let q = self.search_query.to_lowercase();
+                // Search baked-in dir entries
+                let results: Vec<(String, String, String)> = generated_dirs::search(&q)
+                    .take(200)
+                    .map(|e| (e.name.clone(), format!("{}/{}", e.folder, e.name), e.size.clone()))
+                    .collect();
+                hline(ui);
+                egui::Frame::none().fill(C_BG).inner_margin(egui::Margin::symmetric(0.0, 0.0))
+                    .show(ui, |ui: &mut egui::Ui| {
+                        let avail_w = ui.available_width();
+                        let n = results.len();
+                        ui.horizontal(|ui: &mut egui::Ui| {
+                            ui.add_space(10.0);
+                            ui.label(mono(
+                                if n == 200 { format!("200+ matches") } else { format!("{} match{}", n, if n==1{""} else {"es"}) },
+                                9.0, C_MUTED));
+                        });
+                        let row_h = 26.0;
+                        egui::ScrollArea::vertical().id_source("search_results").max_height(300.0).auto_shrink([false;2])
+                            .show_rows(ui, row_h, results.len(), |ui, range| {
+                                for (name, full_href, size) in &results[range] {
+                                    let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
+                                    if resp.hovered() {
+                                        ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
+                                    }
+                                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
+                                    let cx = row.min.x + 10.0;
+                                    let cy = row.center().y;
+                                    ui.painter().text(egui::pos2(cx, cy), egui::Align2::LEFT_CENTER, name, FontId::monospace(11.0), C_FILE);
+                                    if !size.is_empty() {
+                                        ui.painter().text(egui::pos2(row.max.x - 8.0, cy), egui::Align2::RIGHT_CENTER, size, FontId::monospace(9.0), C_MUTED);
+                                    }
+                                    if resp.clicked() {
+                                        // Navigate to the folder containing this file
+                                        let folder_path = full_href.rsplit_once('/').map(|(p,_)| format!("{}/", p)).unwrap_or_default();
+                                        self.crumb_stack.clear();
+                                        for seg in folder_path.trim_end_matches('/').split('/').filter(|s| !s.is_empty()) {
+                                            let path_so_far = {
+                                                let mut p = String::new();
+                                                for (label, existing) in &self.crumb_stack { p = existing.clone(); let _ = label; }
+                                                if p.is_empty() { format!("{}/", seg) } else { format!("{}{}/", p, seg) }
+                                            };
+                                            self.crumb_stack.push((url_decode(seg), path_so_far));
+                                        }
+                                        if let Some((_, path)) = self.crumb_stack.last().cloned() {
+                                            self.navigate(path);
+                                        } else {
+                                            self.navigate(String::new());
+                                        }
+                                        self.search_query.clear();
+                                        self.search_open = false;
+                                    }
+                                }
+                            });
+                    });
+                hline(ui);
+            }
+
             // Filter + select all bar
             egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 5.0))
                 .show(ui, |ui: &mut egui::Ui| {
@@ -1838,31 +2072,44 @@ impl App {
                             egui::Align2::RIGHT_CENTER, entry.date.as_ref(),
                             FontId::monospace(10.0), C_DIM);
 
-                        // Folder checkbox — always visible, toggles queuing the folder
-                        // File checkbox is drawn earlier; folder checkbox here
+                        // Folder checkbox — always visible, large, on the right side
+                        // File checkbox is drawn earlier on the left; keep folder checkbox on right
                         let mut btn_open_clicked   = false;
                         let mut btn_folder_clicked = false;
                         if entry.is_folder {
                             let folder_full_href = format!("{}{}", self.current_path, entry.href);
                             let is_folder_selected = self.folder_selected.contains(&folder_full_href);
 
-                            // Checkbox drawn at same position as file checkbox
-                            let cb_draw_rect = egui::Rect::from_center_size(
-                                egui::pos2(cb_x + 4.0, cy), Vec2::splat(8.0));
-                            if is_folder_selected {
-                                ui.painter().rect_filled(cb_draw_rect, 1.0, C_ACC);
-                                ui.painter().text(cb_draw_rect.center(), egui::Align2::CENTER_CENTER,
-                                    "✓", FontId::monospace(7.0), C_BG);
-                            } else {
-                                ui.painter().rect_stroke(cb_draw_rect, 1.0, Stroke::new(0.5, C_BORDER2));
-                            }
-                            if checkbox_clicked { btn_folder_clicked = true; }
+                            // Large checkbox on the right edge — 20×20, easy to click
+                            let fcb_size = 20.0;
+                            let fcb_rect = egui::Rect::from_center_size(
+                                egui::pos2(row_rect.max.x - fcb_size/2.0 - 4.0, cy),
+                                Vec2::splat(fcb_size));
 
-                            // Hover "-> open" button
-                            let btn_h    = 18.0;
-                            let open_w   = 52.0;
+                            // Detect click on checkbox area using pointer position
+                            let fcb_clicked = response.clicked()
+                                && click_pos.map(|p| fcb_rect.expand(4.0).contains(p)).unwrap_or(false);
+
+                            // Draw the checkbox
+                            if is_folder_selected {
+                                ui.painter().rect_filled(fcb_rect, 3.0, C_ACC);
+                                ui.painter().text(fcb_rect.center(), egui::Align2::CENTER_CENTER,
+                                    "✓", FontId::monospace(12.0), C_BG);
+                            } else {
+                                ui.painter().rect_filled(fcb_rect, 3.0, Color32::from_rgba_premultiplied(255,255,255,8));
+                                ui.painter().rect_stroke(fcb_rect, 3.0, Stroke::new(1.0, C_BORDER2));
+                                if hovered {
+                                    ui.painter().text(fcb_rect.center(), egui::Align2::CENTER_CENTER,
+                                        "+", FontId::monospace(14.0), C_MUTED);
+                                }
+                            }
+                            if fcb_clicked { btn_folder_clicked = true; }
+
+                            // Hover "-> open" button — pushed left of the checkbox
+                            let btn_h  = 18.0;
+                            let open_w = 52.0;
                             let open_rect = egui::Rect::from_min_size(
-                                egui::pos2(base_x + fixed_l + name_w - open_w - 2.0, cy - btn_h/2.0),
+                                egui::pos2(fcb_rect.min.x - open_w - 6.0, cy - btn_h/2.0),
                                 Vec2::new(open_w, btn_h));
                             let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
                             if hovered {
@@ -1890,7 +2137,11 @@ impl App {
                                     }
                                 }
                             }
-                        } else if btn_open_clicked || (response.clicked() && entry.is_folder && !checkbox_clicked) {
+                        } else if btn_open_clicked || (response.clicked() && entry.is_folder && !checkbox_clicked
+                            && click_pos.map(|p| {
+                                let fcb_right = row_rect.max.x - 4.0;
+                                p.x < fcb_right - 28.0
+                            }).unwrap_or(true)) {
                             let new_path = format!("{}{}", self.current_path, entry.href);
                             open_path = Some(new_path.clone());
                             self.crumb_stack.push((entry.name.to_string(), new_path));
@@ -2192,6 +2443,9 @@ impl App {
                         ).clicked() {
                             self.settings.queue_paused = !self.settings.queue_paused;
                             self.settings_dirty = true;
+                            // Immediately sync to shared so the manager thread picks it up
+                            self.shared.lock().unwrap().dl_settings.paused = self.settings.queue_paused;
+                            if !self.settings.queue_paused { self.kick_downloads(); }
                         }
                     });
                 });

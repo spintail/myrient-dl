@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_096(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC/Texas%20Instruments/TI-85", (1219164, "16-Oct-2025 17:58"));
-        m.insert("TOSEC/Texas%20Instruments/TI-85/Firmware", (1176568, "18-Feb-2025 11:45"));
         m.insert("TOSEC/Texas%20Instruments/TI-85/Games", (42596, "18-Feb-2025 11:45"));
         m.insert("TOSEC/Texas%20Instruments/TI-86", (701845, "16-Oct-2025 17:58"));
         m.insert("TOSEC/Texas%20Instruments/TI-86/Firmware", (685258, "18-Feb-2025 11:45"));
@@ -357,7 +355,7 @@ pub fn fill_096(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Zilog/MCZ-2/Operating%20Systems", (276274, "18-Feb-2025 11:47"));
         m.insert("TOSEC/Zilog/MCZ-2/Utilities", (56012, "18-Feb-2025 11:47"));
         m.insert("TeknoParrot", (1850899070201, "03-Mar-2026 21:45"));
-        m.insert("Total%20DOS%20Collection", (1116805583650, "26-Sep-2025 18:41"));
+        m.insert("Total%20DOS%20Collection", (1116805583650, "16-Oct-2025 15:45"));
         m.insert("Total%20DOS%20Collection/Applications", (1976206625, "16-Oct-2025 15:44"));
         m.insert("Total%20DOS%20Collection/Applications/Cracks", (393, "26-Sep-2025 18:41"));
         m.insert("Total%20DOS%20Collection/Applications/Documentation", (21108222, "17-Aug-2025 08:00"));
@@ -503,4 +501,6 @@ pub fn fill_096(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Total%20DOS%20Collection/Games/Images/Floppy/1994", (14349891621, "20-Aug-2025 03:55"));
         m.insert("Total%20DOS%20Collection/Games/Images/Floppy/1995", (5413254589, "29-Sep-2025 13:12"));
         m.insert("Total%20DOS%20Collection/Games/Images/Floppy/1996", (759516459, "29-Sep-2025 13:12"));
+        m.insert("Total%20DOS%20Collection/Games/Images/Floppy/1997", (34402097, "29-Sep-2025 13:12"));
+        m.insert("Total%20DOS%20Collection/Games/Images/Floppy/1998", (6399487, "19-Aug-2025 16:17"));
 }

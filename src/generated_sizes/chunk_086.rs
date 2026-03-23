@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_086(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Magazine%20Australia", (1935985867, "24-Jul-2025 19:29"));
-        m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Master%20%28GR%29", (1478072709, "18-Feb-2025 12:18"));
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Pilot%20%28GB%29", (502477617, "24-Jul-2025 19:34"));
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Player%20%28DE%29", (10373562320, "18-Feb-2025 12:18"));
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Player%20%28ES%29", (3576273288, "24-Jul-2025 19:35"));
@@ -203,7 +201,7 @@ pub fn fill_086(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC-PIX/Microsoft/Xbox/Manuals/Games", (892935728, "18-Feb-2025 12:23"));
         m.insert("TOSEC-PIX/Microsoft/Xbox/Manuals/Hardware", (10471827, "18-Feb-2025 12:23"));
         m.insert("TOSEC-PIX/Multi-format", (716821418099, "16-Oct-2025 18:30"));
-        m.insert("TOSEC-PIX/Multi-format/Artbooks", (10574050064, "18-Feb-2025 12:25"));
+        m.insert("TOSEC-PIX/Multi-format/Artbooks", (10574050064, "16-Oct-2025 18:30"));
         m.insert("TOSEC-PIX/Multi-format/Artbooks/Girls%20of%20Anime%20%28US%29", (72666316, "18-Feb-2025 12:25"));
         m.insert("TOSEC-PIX/Multi-format/Artbooks/Girls%20of%20Gaming%20%28US%29", (256062253, "18-Feb-2025 12:25"));
         m.insert("TOSEC-PIX/Multi-format/Books", (6937908177, "18-Feb-2025 12:25"));
@@ -503,4 +501,6 @@ pub fn fill_086(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC-PIX/Nintendo/Game%20Boy/Video", (60293118, "18-Feb-2025 12:54"));
         m.insert("TOSEC-PIX/Nintendo/GameCube", (20049212053, "16-Oct-2025 18:47"));
         m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines", (19689111520, "16-Oct-2025 18:46"));
+        m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Cube%20%28AU%29", (2675861091, "28-Jul-2025 22:54"));
+        m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Cube%20%28GB%29", (1127953201, "28-Jul-2025 23:31"));
 }

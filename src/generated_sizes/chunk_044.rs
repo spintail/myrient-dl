@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_044(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/vsmile_cd/incredib", (376543640, "28-Sep-2025 21:54"));
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/vsmile_cd/msportg", (46871347, "28-Sep-2025 08:48"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/vsmile_cd/princess", (545469235, "28-Sep-2025 12:54"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/vsmile_cd/scooby", (472593203, "29-Sep-2025 04:51"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/vsmile_cd/shrek3", (933442354, "29-Sep-2025 06:11"));
@@ -503,4 +501,6 @@ pub fn fill_044(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/polysix", (42905, "28-Sep-2025 01:33"));
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/precur2w_cart", (766771, "02-Mar-2026 09:24"));
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/princ", (1186404, "28-Sep-2025 01:33"));
+        m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128_cart", (76389, "28-Sep-2025 01:33"));
+        m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128_cass", (7449781, "28-Sep-2025 01:33"));
 }

@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_080(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock%20Band%202%20DLC%20Pack/System%20of%20a%20Down%20-%20B.Y.O.B", (33030144, "29-Dec-2021 22:13"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock%20Band%202%20DLC%20Pack/System%20of%20a%20Down%20-%20Toxicity", (34707865, "29-Dec-2021 22:13"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock%20Band%202%20DLC%20Pack/T.%20Rex%20-%20Bang%20a%20Gong%20%28Cover%29", (38377881, "29-Dec-2021 22:13"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock%20Band%202%20DLC%20Pack/Taking%20Back%20Sunday%20Pack%2001%20%5BLiar%20%28It%20Takes%20One%20to%20Know%20One%29%2C%20MakeDamnSure%2C%20What%27s%20It%20Feel%20Like%20to%20be%20a%20Ghost%29%5D", (77175193, "29-Dec-2021 22:13"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock%20Band%202%20DLC%20Pack/Talking%20Heads%20Pack%2001%20%5BAnd%20She%20Was%2C%20Crosseyed%20is%20Better%2C%20Girlfriend%20is%20Better%2C%20Once%20in%20a%20Lifetime%2C%20Take%20Me%20to%20the%20River%5D", (200592588, "29-Dec-2021 22:13"));
@@ -503,4 +501,6 @@ pub fn fill_080(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock_Band_Network_DLC_for_2010-07-01_READNFO-XBOX360-RB-DLC", (135066495, "29-Dec-2021 22:02"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock_Band_Network_DLC_for_2010-07-02_READNFO-XBOX360-RB-DLC", (136114488, "29-Dec-2021 22:02"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock_Band_Network_DLC_for_2010-07-06_READNFO-XBOX360-RB-DLC", (306089108, "29-Dec-2021 22:04"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock_Band_Network_DLC_for_2010-07-07_READNFO-XBOX360-RB-DLC", (67327972, "29-Dec-2021 22:01"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/legacy%20meats/Clean%20LIVE%20files%20%28raw%20source%29/GGn/Rock%20Band%20DLC/Rock_Band_Network_DLC_for_2010-07-09_READNFO-XBOX360-RB-DLC", (42686743, "29-Dec-2021 22:01"));
 }

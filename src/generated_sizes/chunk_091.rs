@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_091(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC/Commodore/C64/Games/Sports/%5BCRT%5D", (1881582, "18-Feb-2025 09:55"));
-        m.insert("TOSEC/Commodore/C64/Games/Sports/%5BD64%5D", (826094620, "18-Feb-2025 09:55"));
         m.insert("TOSEC/Commodore/C64/Games/Sports/%5BD71%5D", (957643, "18-Feb-2025 09:56"));
         m.insert("TOSEC/Commodore/C64/Games/Sports/%5BD81%5D", (1797420, "18-Feb-2025 09:56"));
         m.insert("TOSEC/Commodore/C64/Games/Sports/%5BDFI%5D", (2864631, "18-Feb-2025 09:56"));
@@ -503,4 +501,6 @@ pub fn fill_091(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Exelvision/Exeltel/Games/%5BWAV%5D", (110283, "18-Feb-2025 10:01"));
         m.insert("TOSEC/Exidy", (2209657494, "16-Oct-2025 17:38"));
         m.insert("TOSEC/Exidy/Sorcerer", (2209657494, "16-Oct-2025 17:38"));
+        m.insert("TOSEC/Exidy/Sorcerer/Applications", (388876853, "16-Oct-2025 17:38"));
+        m.insert("TOSEC/Exidy/Sorcerer/Applications/%5BDSK%5D", (177800, "18-Feb-2025 10:01"));
 }

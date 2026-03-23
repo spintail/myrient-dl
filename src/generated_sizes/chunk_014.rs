@@ -10,7 +10,7 @@ pub fn fill_014(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/romhacking_net", (12569712949, "03-Sep-2025 09:57"));
         m.insert("Internet%20Archive/romhacking_net/romhacking.net-20240801", (12569712949, "01-Aug-2024 21:12"));
         m.insert("Internet%20Archive/rompacker", (1099615284149, "07-Sep-2025 15:23"));
-        m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete", (1099615284149, "04-Jan-2023 12:22"));
+        m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete", (1099615284149, "06-Sep-2025 22:01"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/2spicy", (3328599654, "02-Jan-2023 14:36"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%20-%20Update%20CHDs%20%28v0.256%20to%20v0.258%29", (16043212, "07-Sep-2025 05:50"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%20-%20Update%20CHDs%20%28v0.256%20to%20v0.258%29/turfwld3", (16043212, "03-Sep-2023 11:44"));
@@ -18,7 +18,7 @@ pub fn fill_014(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%20-%20Update%20ROMs%20%28v0.253%20to%20v0.254%29", (1061659159, "30-Apr-2023 18:40"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%20-%20Update%20ROMs%20%28v0.257%20to%20v0.258%29", (77721980, "04-Sep-2023 03:15"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.252%20ROMs%20%28merged%29", (22611010497, "27-Feb-2023 13:40"));
-        m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.254%20EXTRAs", (69721125963, "29-Jun-2023 22:49"));
+        m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.254%20EXTRAs", (69721125963, "07-Sep-2025 15:39"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.254%20EXTRAs/artwork", (5917559147, "29-Jun-2023 22:48"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.254%20EXTRAs/dats", (96686998, "29-Jun-2023 22:51"));
         m.insert("Internet%20Archive/rompacker/mame-chds-roms-extras-complete/MAME%200.254%20EXTRAs/folders", (3909017, "29-Jun-2023 22:25"));

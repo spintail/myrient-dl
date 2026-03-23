@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_095(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5B%24B%5D", (710440, "18-Feb-2025 11:37"));
-        m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5BSCL%5D", (69323, "18-Feb-2025 11:37"));
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5BTAP%5D", (47481810, "18-Feb-2025 11:37"));
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5BTRD%5D", (355327, "18-Feb-2025 11:38"));
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5BTZX%5D", (63487390, "18-Feb-2025 11:38"));
@@ -503,4 +501,6 @@ pub fn fill_095(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Texas%20Instruments/TI-83/Modules/Ion", (37370, "18-Feb-2025 11:45"));
         m.insert("TOSEC/Texas%20Instruments/TI-83/Shells", (430372, "18-Feb-2025 11:45"));
         m.insert("TOSEC/Texas%20Instruments/TI-83/Sources", (145829, "18-Feb-2025 11:45"));
+        m.insert("TOSEC/Texas%20Instruments/TI-85", (1219164, "16-Oct-2025 17:58"));
+        m.insert("TOSEC/Texas%20Instruments/TI-85/Firmware", (1176568, "18-Feb-2025 11:45"));
 }

@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_045(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128_cart", (76389, "28-Sep-2025 01:33"));
-        m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128_cass", (7449781, "28-Sep-2025 01:33"));
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128_flop", (71782, "28-Sep-2025 01:26"));
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/pro128s_flop", (1352997, "28-Sep-2025 01:26"));
         m.insert("MAME/Software%20List%20ROMs%20%28merged%29/prof180", (1174732, "28-Sep-2025 01:26"));
@@ -503,4 +501,6 @@ pub fn fill_045(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/jupace_cass", (2936345, "28-Sep-2025 15:01"));
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/jupace_snap", (26212, "28-Sep-2025 15:01"));
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/k28", (78334, "03-Mar-2026 13:17"));
+        m.insert("MAME/Software%20List%20ROMs%20%28split%29/k28o", (10547, "03-Mar-2026 13:17"));
+        m.insert("MAME/Software%20List%20ROMs%20%28split%29/kaypro", (1899103, "28-Sep-2025 15:01"));
 }

@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_073(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-S30PASSSONG05XXX", (19711950, "04-Oct-2025 21:56"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-S30PASSSONG05XXX/songs", (19711950, "04-Oct-2025 21:56"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-S30PASSSONG05XXX/songs/givenup", (19711950, "11-Feb-2024 04:50"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-S30PASSSONG06XXX", (17081910, "04-Oct-2025 21:56"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-S30PASSSONG06XXX/songs", (17081910, "04-Oct-2025 21:56"));
@@ -138,12 +136,12 @@ pub fn fill_073(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-YOURETHEBESTJOEB", (15800894, "04-Oct-2025 21:57"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-YOURETHEBESTJOEB/songs", (15800894, "04-Oct-2025 21:57"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/%28DONOTUSE%29untouched_extracted_contents/UP8802-CUSA02084_00-YOURETHEBESTJOEB/songs/yourethebest", (15800894, "11-Feb-2024 04:51"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc", (67943883139, "07-Feb-2024 02:30"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc", (67943883139, "04-Oct-2025 20:25"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC", (48916744511, "04-Oct-2025 20:25"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC", (48858193410, "04-Oct-2025 20:25"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC", (48858193410, "04-Oct-2025 20:27"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D", (48858193410, "04-Oct-2025 20:27"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont", (39083299039, "04-Sep-2022 03:08"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont", (39083299039, "04-Oct-2025 20:42"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901", (4214122018, "04-Oct-2025 20:27"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901/RB16CANDL5CCF000", (18245222, "04-Sep-2022 03:09"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901/RB21STCEN8741C00", (47710208, "04-Sep-2022 03:09"));
@@ -286,7 +284,7 @@ pub fn fill_073(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901/RBWHENICO1566800", (27053260, "04-Sep-2022 03:24"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901/RBWRONGWAC07A800", (15833497, "04-Sep-2022 03:24"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA02901/RBYOURBET8E27000", (38692454, "04-Sep-2022 03:24"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384", (34869166781, "04-Sep-2022 03:09"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384", (34869166781, "04-Oct-2025 20:27"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RB100000YCCF02CA", (39845888, "04-Sep-2022 03:10"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RB1901XXXCCF03E4", (29360128, "04-Sep-2022 03:10"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RB2112PT1E305000", (31876710, "04-Sep-2022 03:10"));
@@ -503,4 +501,6 @@ pub fn fill_073(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RBDEARESTCCF0464", (27053260, "04-Sep-2022 03:30"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RBDEBASERCCF00A5", (23488102, "04-Sep-2022 03:30"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RBDECENTDCCF041C", (20656947, "04-Sep-2022 03:30"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RBDEEPXXXCCF020D", (30303846, "04-Sep-2022 03:30"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Rock%20Band%20Games/goodies/PS4/goodies/debug_dlc/DLC/Debug%20Build%20DLC/Rock%20Band%204%20Debug%20DLC/rb4%20%5BqR3iN2nB2mF9mZ4h%5D/addcont/CUSA03384/RBDEVILSCCCF0070", (37224448, "04-Sep-2022 03:30"));
 }

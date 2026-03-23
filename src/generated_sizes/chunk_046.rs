@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_046(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20ROMs%20%28split%29/k28o", (10547, "03-Mar-2026 13:17"));
-        m.insert("MAME/Software%20List%20ROMs%20%28split%29/kaypro", (1899103, "28-Sep-2025 15:01"));
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/kc_cart", (42188, "28-Sep-2025 15:01"));
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/kc_cass", (1297138, "28-Sep-2025 15:01"));
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/kc_flop", (624946, "28-Sep-2025 15:01"));
@@ -419,9 +417,9 @@ pub fn fill_046(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20ROMs%20%28split%29/zx81_cass", (17099943, "28-Sep-2025 15:34"));
         m.insert("Miscellaneous", (7171146462257, "04-Oct-2025 19:43"));
         m.insert("Miscellaneous/ArbysHasTheMeats", (2480577588070, "04-Oct-2025 19:49"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude", (12248775903, "02-Jan-2024 05:36"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude", (12248775903, "04-Oct-2025 19:40"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5B360%5D", (636590489, "02-Jan-2024 05:13"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5BPS3%5D", (3373375501, "02-Jan-2024 05:13"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5BPS3%5D", (3373375501, "04-Oct-2025 19:49"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5BPS3%5D/DJH2%20v1.01%20Patch", (11429478, "04-Oct-2025 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5BPS3%5D/DJH2%20v1.01%20Patch/NTSC", (5662310, "02-Jan-2024 05:13"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20%2B%20DJ%20Hero%202%20DLC%20%5BPS3%5D/DJH2%20v1.01%20Patch/PAL", (5767168, "02-Jan-2024 05:13"));
@@ -474,8 +472,8 @@ pub fn fill_046(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20GST", (3253747312, "04-Oct-2025 19:49"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20GST/DJ%20Hero%20%2B%20DLC%20GST%20%5BFLAC%5D", (2330051845, "02-Jan-2024 05:28"));
         m.insert("Miscellaneous/ArbysHasTheMeats/DJ%20Hero%20stuff%20-%20shockdude/DJ%20Hero%20GST/DJ%20Hero%20%2B%20DLC%20GST%20%5BMP3%20320%5D", (923695467, "02-Jan-2024 05:33"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie", (6773601195, "22-Feb-2023 13:54"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Packs", (2333873108, "19-Feb-2023 21:26"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie", (6773601195, "04-Oct-2025 19:45"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Packs", (2333873108, "04-Oct-2025 19:44"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Packs/DC1", (219886387, "18-Feb-2023 05:03"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Packs/DC2", (821616639, "13-Jan-2020 02:05"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Packs/DC3", (1292369919, "19-Feb-2023 21:23"));
@@ -489,12 +487,12 @@ pub fn fill_046(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Singles/Dance%20Central%20DLC", (424148976, "04-Oct-2025 19:52"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Singles/Dance%20Central%20DLC/545607D3", (424148976, "04-Oct-2025 19:52"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Dance%20Central%20DLC%20Collection%20by%20geomarvie/Singles/Dance%20Central%20DLC/545607D3/00000002", (424148976, "03-Feb-2023 16:38"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20DLC%20Collection%20by%20guitarheroROXS", (72848681974, "09-Jul-2023 05:26"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20DLC%20Collection%20by%20guitarheroROXS", (72848681974, "04-Oct-2025 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20DLC%20Collection%20by%20guitarheroROXS/PS3", (28346784152, "04-Mar-2023 14:57"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20DLC%20Collection%20by%20guitarheroROXS/Wii", (18146247472, "03-Feb-2023 04:54"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20DLC%20Collection%20by%20guitarheroROXS/Xbox", (23566116451, "19-Jun-2022 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games", (422264474427, "04-Oct-2025 19:44"));
-        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/360", (151504971355, "04-Mar-2023 16:31"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/360", (151504971355, "04-Oct-2025 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/360/_CORONA_FIXED", (46815143522, "05-Jan-2024 00:38"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/360/_GOD_FOR_RETAIL_BADUPDATE", (52828097737, "11-Mar-2025 23:49"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/DS", (1744830464, "04-Oct-2025 19:43"));
@@ -503,4 +501,6 @@ pub fn fill_046(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/DS/USA", (671088640, "05-May-2023 01:15"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/MAC", (6860587928, "04-Oct-2025 19:47"));
         m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/MAC/Guitar.Hero.III.MacOS", (6860587928, "30-Apr-2024 21:53"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC", (17756932707, "04-Oct-2025 19:48"));
+        m.insert("Miscellaneous/ArbysHasTheMeats/Guitar%20Hero%20Games/PC/Guitar.Hero.Aerosmith-RELOADED", (4939212390, "25-Oct-2008 03:08"));
 }

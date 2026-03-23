@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_094(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC/Nuclear%20Data/ND4410%20%26%20ND4420/Utilities", (43994, "18-Feb-2025 11:33"));
-        m.insert("TOSEC/OCC", (47046214, "16-Oct-2025 17:49"));
         m.insert("TOSEC/OCC/Osborne%201%20%26%20Osborne%20Executive", (47046214, "16-Oct-2025 17:49"));
         m.insert("TOSEC/OCC/Osborne%201%20%26%20Osborne%20Executive/Applications", (44459619, "18-Feb-2025 11:33"));
         m.insert("TOSEC/OCC/Osborne%201%20%26%20Osborne%20Executive/Games", (888827, "16-Oct-2025 17:49"));
@@ -503,4 +501,6 @@ pub fn fill_094(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Compilations/Music/%5BTAP%5D", (116426, "18-Feb-2025 11:37"));
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Compilations/Music/%5BTZX%5D", (128508, "18-Feb-2025 11:37"));
         m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes", (113629699, "16-Oct-2025 17:52"));
+        m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5B%24B%5D", (710440, "18-Feb-2025 11:37"));
+        m.insert("TOSEC/Sinclair/ZX%20Spectrum/Covertapes/%5BSCL%5D", (69323, "18-Feb-2025 11:37"));
 }

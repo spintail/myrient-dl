@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_024(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Multimedia/videosnaps_SL/pce", (827608965, "28-Sep-2025 00:58"));
-        m.insert("MAME/Multimedia/videosnaps_SL/psx", (264660570, "28-Sep-2025 00:59"));
         m.insert("MAME/Multimedia/videosnaps_SL/scv", (39697190, "28-Sep-2025 00:59"));
         m.insert("MAME/Multimedia/videosnaps_SL/sg1000", (139374035, "28-Sep-2025 00:59"));
         m.insert("MAME/Multimedia/videosnaps_SL/svision", (69039385, "28-Sep-2025 00:59"));
@@ -503,4 +501,6 @@ pub fn fill_024(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsem", (86297804, "02-Oct-2025 22:01"));
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsem2", (332922880, "02-Oct-2025 22:01"));
         m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsfdct", (337012326, "02-Oct-2025 22:01"));
+        m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsfdr", (129918566, "02-Oct-2025 22:01"));
+        m.insert("MAME/Reference%20Sets/0.160%20CHDs%20%28merged%29/dsftkd", (265814016, "02-Oct-2025 22:01"));
 }

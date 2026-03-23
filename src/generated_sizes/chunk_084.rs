@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_084(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Samplers", (2949853999, "05-Feb-2025 05:19"));
-        m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Samplers/%5BBIN%5D", (456969420, "29-Jan-2023 03:23"));
         m.insert("TOSEC-ISO/NEC/PC-Engine%20CD%20%26%20TurboGrafx-16%20CD/Samplers/%5BIMG%5D", (2492884579, "29-Jan-2023 03:23"));
         m.insert("TOSEC-ISO/NEC/PC-FX", (32251843148, "12-Jul-2025 01:18"));
         m.insert("TOSEC-ISO/NEC/PC-FX/Applications", (11673, "10-Aug-2025 11:30"));
@@ -503,4 +501,6 @@ pub fn fill_084(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC-PIX/Atari/Magazines/Atari%20Club%20%28DE%29", (16357784, "18-Feb-2025 11:56"));
         m.insert("TOSEC-PIX/Atari/Magazines/Atari%20Connection", (272315181, "18-Feb-2025 11:56"));
         m.insert("TOSEC-PIX/Atari/Magazines/Atari%20Explorer", (322437117, "18-Feb-2025 11:56"));
+        m.insert("TOSEC-PIX/Atari/Magazines/Atari%20User%20%28GB%29", (1531130658, "18-Feb-2025 11:56"));
+        m.insert("TOSEC-PIX/Atari/Magazines/AtariUser", (507510777, "18-Feb-2025 11:56"));
 }

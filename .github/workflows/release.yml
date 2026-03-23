@@ -41,13 +41,14 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp target/release/myrient-dl dist/myrient-dl-linux-x86_64
-          chmod +x dist/myrient-dl-linux-x86_64
+          cp target/release/myrient-dl     dist/myrient-dl-linux-x86_64
+          cp target/release/myrient-dl-cli dist/myrient-dl-cli-linux-x86_64
+          chmod +x dist/myrient-dl-linux-x86_64 dist/myrient-dl-cli-linux-x86_64
 
       - uses: actions/upload-artifact@v4
         with:
-          name: myrient-dl-linux-x86_64
-          path: dist/myrient-dl-linux-x86_64
+          name: linux-x86_64
+          path: dist/
 
   build-windows:
     name: Windows (x86_64)
@@ -74,6 +75,9 @@ jobs:
             target
           key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      # Only build the GUI binary for Windows — CLI not included
+      # (windows_subsystem = "windows" suppresses console; a CLI binary
+      #  would need a separate subsystem attribute which conflicts with GUI)
       - name: Build
         run: cargo build --release --target x86_64-pc-windows-gnu
         env:
@@ -82,12 +86,13 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp target/x86_64-pc-windows-gnu/release/myrient-dl.exe dist/myrient-dl-windows-x86_64.exe
+          cp target/x86_64-pc-windows-gnu/release/myrient-dl.exe     dist/myrient-dl-windows-x86_64.exe
+          cp target/x86_64-pc-windows-gnu/release/myrient-dl-cli.exe dist/myrient-dl-cli-windows-x86_64.exe
 
       - uses: actions/upload-artifact@v4
         with:
-          name: myrient-dl-windows-x86_64
-          path: dist/myrient-dl-windows-x86_64.exe
+          name: windows-x86_64
+          path: dist/
 
   build-macos:
     name: macOS (universal)
@@ -115,19 +120,23 @@ jobs:
       - name: Build arm64
         run: cargo build --release --target aarch64-apple-darwin
 
-      - name: Create universal binary
+      - name: Create universal binaries
         run: |
           mkdir -p dist
           lipo -create \
             target/x86_64-apple-darwin/release/myrient-dl \
             target/aarch64-apple-darwin/release/myrient-dl \
             -output dist/myrient-dl-macos-universal
-          chmod +x dist/myrient-dl-macos-universal
+          lipo -create \
+            target/x86_64-apple-darwin/release/myrient-dl-cli \
+            target/aarch64-apple-darwin/release/myrient-dl-cli \
+            -output dist/myrient-dl-cli-macos-universal
+          chmod +x dist/myrient-dl-macos-universal dist/myrient-dl-cli-macos-universal
 
       - uses: actions/upload-artifact@v4
         with:
-          name: myrient-dl-macos-universal
-          path: dist/myrient-dl-macos-universal
+          name: macos-universal
+          path: dist/
 
   release:
     name: Create GitHub Release
@@ -143,7 +152,18 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/myrient-dl-linux-x86_64/myrient-dl-linux-x86_64
-            artifacts/myrient-dl-windows-x86_64/myrient-dl-windows-x86_64.exe
-            artifacts/myrient-dl-macos-universal/myrient-dl-macos-universal
+            artifacts/linux-x86_64/myrient-dl-linux-x86_64
+            artifacts/linux-x86_64/myrient-dl-cli-linux-x86_64
+            artifacts/windows-x86_64/myrient-dl-windows-x86_64.exe
+            artifacts/windows-x86_64/myrient-dl-cli-windows-x86_64.exe
+            artifacts/macos-universal/myrient-dl-macos-universal
+            artifacts/macos-universal/myrient-dl-cli-macos-universal
           generate_release_notes: true
+          body: |
+            ## Downloads
+
+            | Platform | GUI | CLI |
+            |----------|-----|-----|
+            | Linux x86_64 | `myrient-dl-linux-x86_64` | `myrient-dl-cli-linux-x86_64` |
+            | Windows x86_64 | `myrient-dl-windows-x86_64.exe` | `myrient-dl-cli-windows-x86_64.exe` |
+            | macOS Universal | `myrient-dl-macos-universal` | `myrient-dl-cli-macos-universal` |

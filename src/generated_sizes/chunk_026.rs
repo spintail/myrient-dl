@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_026(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk6m", (618030694, "02-Oct-2025 22:51"));
-        m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk7m", (422471270, "02-Oct-2025 22:51"));
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk8m", (1243820850, "02-Oct-2025 22:51"));
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrk9m", (527643443, "02-Oct-2025 22:51"));
         m.insert("MAME/Reference%20Sets/0.174%20CHDs%20%28merged%29/gtrfrks", (623588147, "02-Oct-2025 22:51"));
@@ -503,4 +501,6 @@ pub fn fill_026(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20haremchl", (121949388, "28-Sep-2025 18:02"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20heatof11", (245891072, "28-Sep-2025 18:02"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20hellngt", (462526873, "28-Sep-2025 18:03"));
+        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20hyperath", (186961100, "28-Sep-2025 18:03"));
+        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20hyprdriv", (376333926, "28-Sep-2025 18:04"));
 }

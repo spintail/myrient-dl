@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_087(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Cube%20%28AU%29", (2675861091, "28-Jul-2025 22:54"));
-        m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Cube%20%28GB%29", (1127953201, "28-Jul-2025 23:31"));
         m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Cube%20Solutions%20%28GB%29", (316355379, "28-Jul-2025 23:38"));
         m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/NGC%20%28GB%29", (14059411842, "30-Jul-2025 07:17"));
         m.insert("TOSEC-PIX/Nintendo/GameCube/Magazines/Nintendo%20Gamer%20%28AU%29", (1509530007, "29-Jul-2025 02:01"));
@@ -503,4 +501,6 @@ pub fn fill_087(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC/Acorn/Archimedes/Games/%5BADF%5D", (75669118, "18-Feb-2025 06:10"));
         m.insert("TOSEC/Acorn/Archimedes/Games/%5BJFD%5D", (68333511, "18-Feb-2025 06:10"));
         m.insert("TOSEC/Acorn/Archimedes/Games/%5BSCP%5D", (159173835, "12-Jul-2025 00:57"));
+        m.insert("TOSEC/Acorn/Archimedes/Miscellaneous", (2006424, "18-Feb-2025 06:10"));
+        m.insert("TOSEC/Acorn/Archimedes/Operating%20Systems", (406630, "18-Feb-2025 06:10"));
 }

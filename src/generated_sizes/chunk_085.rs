@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_085(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("TOSEC-PIX/Atari/Magazines/Atari%20User%20%28GB%29", (1531130658, "18-Feb-2025 11:56"));
-        m.insert("TOSEC-PIX/Atari/Magazines/AtariUser", (507510777, "18-Feb-2025 11:56"));
         m.insert("TOSEC-PIX/Atari/Magazines/Atarian", (87660952, "18-Feb-2025 11:56"));
         m.insert("TOSEC-PIX/Atari/Magazines/Input%20Output", (34498148, "18-Feb-2025 11:56"));
         m.insert("TOSEC-PIX/Atari/Magazines/L%27Atarien%20%28FR%29", (59349398, "18-Feb-2025 11:56"));
@@ -503,4 +501,6 @@ pub fn fill_085(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Home%20%28GB%29", (1845703474, "24-Jul-2025 18:03"));
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Leisure%20%28GB%29", (616562687, "24-Jul-2025 17:42"));
         m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Magazine%20%28US%29", (7420772255, "18-Feb-2025 12:18"));
+        m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Magazine%20Australia", (1935985867, "24-Jul-2025 19:29"));
+        m.insert("TOSEC-PIX/IBM/PC%20Compatibles/Magazines/PC%20Master%20%28GR%29", (1478072709, "18-Feb-2025 12:18"));
 }

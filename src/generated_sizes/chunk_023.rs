@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_023(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_mv", (12492, "28-Sep-2025 13:24"));
-        m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_nk", (70143, "28-Sep-2025 13:24"));
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_nm", (7577, "28-Sep-2025 13:24"));
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jakks_gamekey_sw", (27340, "28-Sep-2025 13:24"));
         m.insert("MAME/EXTRAs/all_non-zipped_content/snap_SL/jpopira_jp", (11980, "28-Sep-2025 13:24"));
@@ -503,4 +501,6 @@ pub fn fill_023(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Multimedia/videosnaps_SL/nes", (1506182922, "28-Sep-2025 00:57"));
         m.insert("MAME/Multimedia/videosnaps_SL/ngp", (18609865, "28-Sep-2025 00:58"));
         m.insert("MAME/Multimedia/videosnaps_SL/ngpc", (113235939, "28-Sep-2025 00:58"));
+        m.insert("MAME/Multimedia/videosnaps_SL/pce", (827608965, "28-Sep-2025 00:58"));
+        m.insert("MAME/Multimedia/videosnaps_SL/psx", (264660570, "28-Sep-2025 00:59"));
 }

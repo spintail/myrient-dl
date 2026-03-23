@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_039(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/pfght", (373083340, "29-Sep-2025 04:35"));
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/pga2k", (162004992, "29-Sep-2025 05:27"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/pga96", (434320179, "29-Sep-2025 05:57"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/pga97", (312685363, "29-Sep-2025 05:39"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/pga98", (238970470, "29-Sep-2025 05:57"));
@@ -503,4 +501,6 @@ pub fn fill_039(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/ss102dgn", (449419673, "29-Sep-2025 06:00"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/ss103ddg", (334390886, "29-Sep-2025 05:59"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/ss104pnk", (279340646, "29-Sep-2025 04:53"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/ssanvein", (83886080, "29-Sep-2025 04:32"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/psx/ssbk2", (99929292, "29-Sep-2025 05:56"));
 }

@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_027(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20hyperath", (186961100, "28-Sep-2025 18:03"));
-        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20hyprdriv", (376333926, "28-Sep-2025 18:04"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20ikaruga", (80740352, "28-Sep-2025 18:03"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20initd", (230057574, "28-Sep-2025 18:04"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.130%29%20-%20jdredd", (433061888, "28-Sep-2025 18:05"));
@@ -503,4 +501,6 @@ pub fn fill_027(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.153%29%20-%20vf4tuned", (501009612, "29-Sep-2025 03:12"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.153%29%20-%20vf4tuneda", (206254899, "29-Sep-2025 03:07"));
         m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.153%29%20-%20vf4tunedd", (206254899, "29-Sep-2025 03:09"));
+        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.153%29%20-%20vs2002ex", (310378496, "29-Sep-2025 03:11"));
+        m.insert("MAME/Rollback%20CHDs/MAME%20%28v0.153%29%20-%20vs4", (396676300, "29-Sep-2025 03:12"));
 }

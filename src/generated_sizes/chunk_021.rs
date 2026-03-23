@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_021(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("Lost%20Level/Archive/010%20-%20Lost%20Level%20Archive%20-%20Sega%20-%2032X", (5540042, "05-Oct-2025 22:53"));
-        m.insert("Lost%20Level/Archive/011%20-%20Lost%20Level%20Archive%20-%20Sega%20-%20Master%20System", (413112, "05-Oct-2025 22:53"));
         m.insert("Lost%20Level/Archive/012%20-%20Lost%20Level%20Archive%20-%20Sony%20-%20PlayStation", (20338326455, "05-Oct-2025 22:56"));
         m.insert("Lost%20Level/Archive/013%20-%20Lost%20Level%20Archive%20-%20Atari%20-%20Lynx", (99121, "05-Oct-2025 23:27"));
         m.insert("Lost%20Level/Archive/014%20-%20Lost%20Level%20Archive%20-%20SNK%20-%20Neo%20Geo%20Pocket%20Color", (2724138, "05-Oct-2025 23:27"));
@@ -503,4 +501,6 @@ pub fn fill_021(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/CHDs%20%28merged%29/photoply2k", (1226204772, "28-Sep-2025 02:40"));
         m.insert("MAME/CHDs%20%28merged%29/photoply2k1it", (3638663575, "28-Sep-2025 07:11"));
         m.insert("MAME/CHDs%20%28merged%29/photoply2k1sp", (867906355, "28-Sep-2025 08:15"));
+        m.insert("MAME/CHDs%20%28merged%29/photoply2k2be", (787585433, "28-Sep-2025 08:16"));
+        m.insert("MAME/CHDs%20%28merged%29/photoply2k4", (659239731, "28-Sep-2025 07:07"));
 }

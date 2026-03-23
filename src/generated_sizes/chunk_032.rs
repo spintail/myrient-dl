@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_032(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/takamiza", (299263590, "29-Sep-2025 06:46"));
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/tania", (3250585, "29-Sep-2025 05:51"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/tankcpdx", (3460300, "29-Sep-2025 05:51"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/tatsuou", (212965785, "29-Sep-2025 06:46"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/tccgmus", (18454937, "29-Sep-2025 04:49"));
@@ -503,4 +501,6 @@ pub fn fill_032(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/raptor", (38902167, "28-Sep-2025 20:33"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/rayman", (183710515, "28-Sep-2025 19:36"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/redalert", (4059037692, "28-Sep-2025 19:10"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/rhapsody", (504155340, "02-Mar-2026 09:27"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/ibm5170_cdrom/rise2dc", (773639372, "28-Sep-2025 19:47"));
 }

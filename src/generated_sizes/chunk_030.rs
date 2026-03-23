@@ -3,8 +3,6 @@
 use std::collections::HashMap;
 
 pub fn fill_030(m: &mut HashMap<&'static str, (u64, &'static str)>) {
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/dc/dcpromo", (879021260, "28-Sep-2025 19:14"));
-        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/dc/ddr2md", (825753600, "28-Sep-2025 23:15"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/dc/ddrcvd", (866123776, "28-Sep-2025 19:56"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/dc/deathc2", (603665203, "28-Sep-2025 21:47"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/dc/deathcox", (127611699, "29-Sep-2025 04:45"));
@@ -503,4 +501,6 @@ pub fn fill_030(m: &mut HashMap<&'static str, (u64, &'static str)>) {
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/etsuraku", (270742323, "29-Sep-2025 06:17"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/eup2mtr", (1572864, "28-Sep-2025 17:14"));
         m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/eup2sc", (2306867, "28-Sep-2025 17:14"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/eurosens", (276509491, "29-Sep-2025 06:48"));
+        m.insert("MAME/Software%20List%20CHDs%20%28merged%29/fmtowns_cd/evolutn", (182976512, "29-Sep-2025 06:47"));
 }
