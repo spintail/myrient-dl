@@ -1,27 +1,86 @@
-// Auto-generated index — do not edit.
-// Single source of truth for the baked-in Myrient tree:
-//   navigation (per-folder entry blocks)
-//   folder sizes (in index, from full crawl)
-//   search (built lazily on first search from dir blocks)
+// Dynamic directory index.
+//
+// On first run, copies the embedded generated_dirs.bin to the local data directory.
+// All subsequent reads come from the local file, which is updated as the user browses.
+// When a folder is fetched live from Myrient, it is persisted to the local file
+// in the background so future lookups are instant.
+//
+// Format: see fetch_sizes/write_dirs for the binary layout.
+// Writes are atomic: write to .tmp alongside the real file, then rename.
 
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::path::PathBuf;
+use std::sync::{OnceLock, RwLock};
 
-static COMPRESSED: &[u8] = include_bytes!("generated_dirs.bin");
+// ── Embedded fallback ─────────────────────────────────────────────────────────
+// Baked in at compile time — used only on first run to seed the local file.
 
-// Index entry: (block_offset, block_clen, folder_total_bytes)
-static INDEX: OnceLock<HashMap<String, (usize, usize, u64)>> = OnceLock::new();
+static EMBEDDED: &[u8] = include_bytes!("generated_dirs.bin");
 
-fn ensure_index() -> &'static HashMap<String, (usize, usize, u64)> {
-    INDEX.get_or_init(|| parse_index(COMPRESSED).unwrap_or_default())
+// ── Local file ────────────────────────────────────────────────────────────────
+// Loaded at startup from the local data directory.
+// Held in a RwLock so the index can be hot-reloaded after a write.
+
+struct LocalIndex {
+    /// Raw bytes of the local file (or embedded if local doesn't exist yet)
+    data: Vec<u8>,
+    /// Parsed index: path → (block_offset, block_clen, total_bytes)
+    map:  HashMap<String, (usize, usize, u64)>,
 }
+
+static LOCAL: OnceLock<RwLock<LocalIndex>> = OnceLock::new();
+
+fn local_bin_path() -> PathBuf {
+    data_dir().join("generated_dirs.bin")
+}
+
+fn data_dir() -> PathBuf {
+    let base = std::env::var("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
+            PathBuf::from(home).join(".local/share")
+        });
+    base.join("myrient-dl")
+}
+
+/// Initialise on startup:
+/// - If no local file exists, seed it from the embedded data.
+/// - Load the local file into the in-memory index.
+pub fn init() {
+    let path = local_bin_path();
+    std::fs::create_dir_all(path.parent().unwrap()).ok();
+
+    // Seed from embedded if local file doesn't exist or is empty
+    if !path.exists() || std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) <= 1 {
+        if EMBEDDED.len() > 1 {
+            std::fs::write(&path, EMBEDDED).ok();
+        }
+    }
+
+    // Load local file (fall back to embedded bytes if read fails)
+    let data = std::fs::read(&path).unwrap_or_else(|_| EMBEDDED.to_vec());
+    let map  = parse_index(&data).unwrap_or_default();
+    LOCAL.get_or_init(|| RwLock::new(LocalIndex { data, map }));
+}
+
+fn ensure_local() -> &'static RwLock<LocalIndex> {
+    LOCAL.get_or_init(|| {
+        // init() wasn't called — load embedded as fallback
+        let data = EMBEDDED.to_vec();
+        let map  = parse_index(&data).unwrap_or_default();
+        RwLock::new(LocalIndex { data, map })
+    })
+}
+
+// ── Index parsing ─────────────────────────────────────────────────────────────
 
 fn parse_index(data: &[u8]) -> Option<HashMap<String, (usize, usize, u64)>> {
     if data.len() < 4 { return None; }
-    let num_folders = u32::from_le_bytes(data[0..4].try_into().ok()?) as usize;
-    let mut map = HashMap::with_capacity(num_folders);
+    let num = u32::from_le_bytes(data[0..4].try_into().ok()?) as usize;
+    let mut map = HashMap::with_capacity(num);
     let mut pos = 4usize;
-    for _ in 0..num_folders {
+    for _ in 0..num {
         if pos + 2 > data.len() { break; }
         let path_len = u16::from_le_bytes(data[pos..pos+2].try_into().ok()?) as usize;
         pos += 2;
@@ -48,13 +107,143 @@ pub struct DirEntry {
     pub is_folder:  bool,
 }
 
+/// Look up a folder's entries. Returns None if not in the local index.
 pub fn lookup(path: &str) -> Option<Vec<DirEntry>> {
-    if COMPRESSED.len() <= 1 { return None; }
     let key = path.trim_matches('/');
-    let &(offset, clen, _) = ensure_index().get(key)?;
-    let block = COMPRESSED.get(offset..offset+clen)?;
+    let local = ensure_local().read().ok()?;
+    let &(offset, clen, _) = local.map.get(key)?;
+    let block = local.data.get(offset..offset+clen)?;
     let raw = zstd::decode_all(block).ok()?;
     parse_block(&raw)
+}
+
+/// Persist a freshly-fetched folder to the local index in the background.
+/// Called after a live HTTP fetch so future lookups are instant.
+/// `entries` are the raw HTTP entries; `total_bytes` is 0 if unknown.
+pub fn persist_folder(path: String, entries: Vec<DirEntry>, total_bytes: u64) {
+    std::thread::spawn(move || {
+        if let Err(e) = do_persist(path, entries, total_bytes) {
+            eprintln!("warn: failed to persist folder to index: {}", e);
+        }
+    });
+}
+
+fn do_persist(path: String, entries: Vec<DirEntry>, total_bytes: u64) -> std::io::Result<()> {
+    let key = path.trim_matches('/').to_string();
+
+    // Encode entries to compact binary block
+    let block_raw = encode_block(&entries);
+    let compressed = zstd::encode_all(block_raw.as_slice(), 3)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
+    let local = ensure_local();
+
+    // Rebuild the full file with the new/updated block appended
+    // We take a write lock for the entire operation to keep the file consistent
+    let mut idx = local.write().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "lock poisoned"))?;
+
+    // Build new index + blocks, replacing the entry for `key` if it exists
+    // Strategy: copy all existing blocks except the one being replaced, append new block
+    let mut new_index: Vec<(String, usize, usize, u64)> = Vec::new(); // (path, offset, clen, total)
+    let mut new_blocks: Vec<u8> = Vec::new();
+
+    for (p, &(offset, clen, tot)) in &idx.map {
+        if p == &key { continue; } // skip — we'll add the new version below
+        let Some(block) = idx.data.get(offset..offset+clen) else { continue };
+        let block_offset = new_blocks.len();
+        new_blocks.extend_from_slice(block);
+        new_index.push((p.clone(), block_offset, clen, tot));
+    }
+
+    // Append the new/updated block
+    let new_block_offset = new_blocks.len();
+    let new_clen = compressed.len();
+    new_blocks.extend_from_slice(&compressed);
+    new_index.push((key.clone(), new_block_offset, new_clen, total_bytes));
+
+    // Serialise index header
+    let mut header: Vec<u8> = Vec::new();
+    header.extend_from_slice(&(new_index.len() as u32).to_le_bytes());
+    for (p, _, _, _) in &new_index {
+        let pb = p.as_bytes();
+        header.extend_from_slice(&(pb.len() as u16).to_le_bytes());
+        header.extend_from_slice(pb);
+        header.extend_from_slice(&0u32.to_le_bytes()); // offset placeholder
+        header.extend_from_slice(&0u32.to_le_bytes()); // clen placeholder
+        header.extend_from_slice(&0u64.to_le_bytes()); // total_bytes placeholder
+    }
+
+    // Patch offsets now that we know the header size
+    let header_size = header.len();
+    let mut hpos = 4usize;
+    for (_, block_offset, clen, total) in &new_index {
+        let path_len = u16::from_le_bytes(header[hpos..hpos+2].try_into().unwrap()) as usize;
+        hpos += 2 + path_len;
+        let abs = (header_size + block_offset) as u32;
+        header[hpos..hpos+4].copy_from_slice(&abs.to_le_bytes());          hpos += 4;
+        header[hpos..hpos+4].copy_from_slice(&(*clen as u32).to_le_bytes()); hpos += 4;
+        header[hpos..hpos+8].copy_from_slice(&total.to_le_bytes());          hpos += 8;
+    }
+
+    let mut out = header;
+    out.extend_from_slice(&new_blocks);
+
+    // Atomic write: write to .tmp then rename
+    let bin_path = local_bin_path();
+    let tmp_path = bin_path.with_extension("tmp");
+    std::fs::write(&tmp_path, &out)?;
+    std::fs::rename(&tmp_path, &bin_path)?;
+
+    // Hot-reload the index in memory
+    let new_map = parse_index(&out).unwrap_or_default();
+    idx.data = out;
+    idx.map  = new_map;
+
+    Ok(())
+}
+
+fn encode_block(entries: &[DirEntry]) -> Vec<u8> {
+    let mut buf = Vec::new();
+    let num = entries.len().min(65535) as u16;
+    buf.extend_from_slice(&num.to_le_bytes());
+    for e in entries.iter().take(num as usize) {
+        buf.push(if e.is_folder { 1u8 } else { 0u8 });
+        write_str_field(&mut buf, &e.href);
+        if !e.is_folder {
+            buf.push(((e.size_bytes >> 32) & 0xff) as u8);
+            buf.extend_from_slice(&((e.size_bytes & 0xffffffff) as u32).to_le_bytes());
+        }
+        // Pack date from "YYYY-MM-DD" string
+        let (dy, dm, dd) = parse_date_compact(&e.date);
+        buf.push(dy);
+        buf.push((dm << 4) | (dd & 0x0f));
+    }
+    buf
+}
+
+fn write_str_field(buf: &mut Vec<u8>, s: &str) {
+    let b = s.as_bytes();
+    let len = b.len().min(255);
+    buf.push(len as u8);
+    buf.extend_from_slice(&b[..len]);
+}
+
+fn parse_date_compact(date: &str) -> (u8, u8, u8) {
+    let b = date.as_bytes();
+    let year  = parse_digits(b, 0, 4).saturating_sub(2000).min(255) as u8;
+    let month = parse_digits(b, 5, 2).min(12) as u8;
+    let day   = parse_digits(b, 8, 2).min(31) as u8;
+    (year, month, day)
+}
+
+fn parse_digits(b: &[u8], offset: usize, len: usize) -> u32 {
+    let mut n = 0u32;
+    for i in 0..len {
+        if let Some(&c) = b.get(offset + i) {
+            if c.is_ascii_digit() { n = n * 10 + (c - b'0') as u32; }
+        }
+    }
+    n
 }
 
 fn parse_block(data: &[u8]) -> Option<Vec<DirEntry>> {
@@ -124,20 +313,28 @@ fn fmt_size(b: u64) -> String {
 
 // ── Folder sizes ──────────────────────────────────────────────────────────────
 
-/// Returns the pre-computed total size of a folder (from the full crawl).
-/// Key is the folder path without leading/trailing slashes, e.g. "No-Intro/Nintendo - Game Boy".
 pub fn folder_size(path: &str) -> Option<u64> {
-    if COMPRESSED.len() <= 1 { return None; }
     let key = path.trim_matches('/');
-    ensure_index().get(key).map(|&(_, _, total)| total).filter(|&t| t > 0)
+    ensure_local().read().ok()?.map.get(key).map(|&(_, _, t)| t).filter(|&t| t > 0)
 }
 
 pub fn folder_count() -> usize {
-    if COMPRESSED.len() <= 1 { return 0; }
-    ensure_index().len()
+    ensure_local().read().map(|l| l.map.len()).unwrap_or(0)
 }
 
-// ── Search index — built lazily from dir blocks ───────────────────────────────
+/// Returns the sorted list of top-level folder names (no slashes, no sub-paths).
+/// Used for the include/exclude dropdowns in the search tab.
+pub fn top_level_folders() -> Vec<String> {
+    let Ok(local) = ensure_local().read() else { return vec![]; };
+    let mut folders: Vec<String> = local.map.keys()
+        .filter(|k| !k.is_empty() && !k.contains('/'))
+        .map(|k| k.clone())
+        .collect();
+    folders.sort();
+    folders
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
 
 struct SearchData {
     buf:   &'static [u8],
@@ -146,22 +343,21 @@ struct SearchData {
 
 static SEARCH: OnceLock<SearchData> = OnceLock::new();
 
-/// Trigger search index build in the background. Call once at startup.
 pub fn warm_search_index() {
     std::thread::spawn(|| { ensure_search(); });
 }
 
 fn ensure_search() -> &'static SearchData {
     SEARCH.get_or_init(|| {
-        if COMPRESSED.len() <= 1 {
-            return SearchData { buf: &[], index: vec![] };
-        }
-        let index_map = ensure_index();
+        let local = match ensure_local().read() {
+            Ok(l) => l,
+            Err(_) => return SearchData { buf: &[], index: vec![] },
+        };
         let mut raw: Vec<u8> = Vec::new();
         let mut offsets: Vec<(u32, u32, u32, u32, u64)> = Vec::new();
 
-        for (folder_path, &(offset, clen, _)) in index_map {
-            let Some(block) = COMPRESSED.get(offset..offset+clen) else { continue };
+        for (folder_path, &(offset, clen, _)) in &local.map {
+            let Some(block) = local.data.get(offset..offset+clen) else { continue };
             let Ok(decompressed) = zstd::decode_all(block) else { continue };
             let Some(entries) = parse_block(&decompressed) else { continue };
             for e in entries {
@@ -188,14 +384,24 @@ pub struct SearchEntry<'a> {
     pub size_bytes: u64,
 }
 
-pub fn search(query: &str) -> impl Iterator<Item = SearchEntry<'static>> {
-    let q_owned = query.to_lowercase();
-    let data = ensure_search();
-    data.index.iter().filter_map(move |&(hs, he, fs, fe, sz)| {
+/// Returns true if the search index is ready for use.
+pub fn search_ready() -> bool {
+    SEARCH.get().is_some()
+}
+
+pub fn search(query: &str) -> Box<dyn Iterator<Item = SearchEntry<'static>> + 'static> {
+    let q = query.to_lowercase();
+    // Don't block — if the index isn't ready, return empty immediately.
+    // The UI checks search_ready() and shows a loading indicator.
+    let data = match SEARCH.get() {
+        Some(d) => d,
+        None    => return Box::new(std::iter::empty()),
+    };
+    Box::new(data.index.iter().filter_map(move |&(hs, he, fs, fe, sz)| {
         let href_lc = std::str::from_utf8(&data.buf[hs as usize..he as usize]).ok()?;
-        if !href_lc.contains(q_owned.as_str()) { return None; }
+        if !href_lc.contains(q.as_str()) { return None; }
         let folder  = std::str::from_utf8(&data.buf[fs as usize..fe as usize]).ok()?;
         let name    = url_decode_name(href_lc);
         Some(SearchEntry { href_lc, folder, name, size_bytes: sz })
-    })
+    }))
 }

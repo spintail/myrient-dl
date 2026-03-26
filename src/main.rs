@@ -299,7 +299,20 @@ fn fetch_directory(url: &str, rel_path: &str) -> Result<Vec<DirEntry>, String> {
             return Ok(entries);
         }
     }
-    fetch_directory_http(url)
+    // Not in local index — fetch live and persist for next time
+    let entries = fetch_directory_http(url)?;
+    let persist_entries: Vec<generated_dirs::DirEntry> = entries.iter().map(|e| {
+        generated_dirs::DirEntry {
+            name:       e.name.to_string(),
+            href:       e.href.to_string(),
+            size:       e.size.to_string(),
+            size_bytes: parse_size_str(&e.size),
+            date:       e.date.to_string(),
+            is_folder:  e.is_folder,
+        }
+    }).collect();
+    generated_dirs::persist_folder(key.to_string(), persist_entries, 0);
+    Ok(entries)
 }
 
 fn fetch_directory_http(url: &str) -> Result<Vec<DirEntry>, String> {
@@ -949,6 +962,12 @@ struct App {
     browser_tab:          BrowserTab,
     search_include:       String,
     search_exclude:       String,
+    // Cached search results — only recomputed when query/filters change
+    search_results_cache: Vec<(String, String, String, u64)>,
+    search_last_query:    String,
+    search_last_include:  String,
+    search_last_exclude:  String,
+    search_top_folders:   Vec<String>,
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
@@ -1005,10 +1024,17 @@ impl App {
             browser_tab:   BrowserTab::Browse,
             search_include: String::new(),
             search_exclude: String::new(),
+            search_results_cache: Vec::new(),
+            search_last_query:   String::new(),
+            search_last_include: String::new(),
+            search_last_exclude: String::new(),
+            search_top_folders:  Vec::new(),
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
         app.navigate(String::new());
+        // Initialise local index — seeds from embedded on first run
+        generated_dirs::init();
         // Start building search index in background so first search is instant
         generated_dirs::warm_search_index();
         app
@@ -2114,11 +2140,19 @@ impl App {
 
     // ── Search tab ────────────────────────────────────────────────────────────
     fn draw_search_tab(&mut self, ui: &mut egui::Ui) {
+        // Capture width before any content can influence it
         let avail_w = ui.available_width();
+        ui.set_max_width(avail_w);
+
+        // Cache top-level folder list for dropdowns (computed once)
+        if self.search_top_folders.is_empty() && generated_dirs::folder_count() > 0 {
+            self.search_top_folders = generated_dirs::top_level_folders();
+        }
 
         // Search input + filter controls
         egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 6.0))
             .show(ui, |ui: &mut egui::Ui| {
+                ui.set_max_width(avail_w - 20.0);
                 ui.vertical(|ui: &mut egui::Ui| {
                     // Main search bar
                     ui.horizontal(|ui: &mut egui::Ui| {
@@ -2127,38 +2161,67 @@ impl App {
                         let resp = ui.add(
                             egui::TextEdit::singleline(&mut self.search_query)
                                 .font(FontId::monospace(12.0))
-                                .desired_width(ui.available_width() - 30.0)
+                                .desired_width(f32::INFINITY)
                                 .hint_text("search all files…")
                                 .text_color(C_TEXT)
                         );
                         if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                             self.search_query.clear();
+                            self.search_results_cache.clear();
                         }
                         if !self.search_query.is_empty() {
                             if ui.add(egui::Button::new(mono("✕", 10.0, C_MUTED)).frame(false)).clicked() {
                                 self.search_query.clear();
+                                self.search_results_cache.clear();
                             }
                         }
                         let _ = resp;
                     });
                     ui.add_space(4.0);
-                    // Directory filters
+                    // Directory filters with dropdown buttons
                     ui.horizontal(|ui: &mut egui::Ui| {
                         ui.label(mono("only:", 9.0, C_DIM));
                         ui.add_space(2.0);
                         ui.add(egui::TextEdit::singleline(&mut self.search_include)
                             .font(FontId::monospace(9.5))
-                            .desired_width(120.0)
+                            .desired_width(110.0)
                             .hint_text("e.g. No-Intro")
                             .text_color(C_TEXT));
+                        // Dropdown picker for include
+                        egui::ComboBox::new("search_inc_combo", "")
+                            .width(0.0)
+                            .selected_text(mono("▾", 9.0, C_MUTED))
+                            .show_ui(ui, |ui| {
+                                if ui.selectable_label(self.search_include.is_empty(), mono("(any)", 9.5, C_DIM)).clicked() {
+                                    self.search_include.clear();
+                                }
+                                for folder in &self.search_top_folders.clone() {
+                                    if ui.selectable_label(self.search_include == *folder, mono(folder, 9.5, C_TEXT)).clicked() {
+                                        self.search_include = folder.clone();
+                                    }
+                                }
+                            });
                         ui.add_space(8.0);
                         ui.label(mono("exclude:", 9.0, C_DIM));
                         ui.add_space(2.0);
                         ui.add(egui::TextEdit::singleline(&mut self.search_exclude)
                             .font(FontId::monospace(9.5))
-                            .desired_width(120.0)
+                            .desired_width(110.0)
                             .hint_text("e.g. BIOS")
                             .text_color(C_TEXT));
+                        egui::ComboBox::new("search_exc_combo", "")
+                            .width(0.0)
+                            .selected_text(mono("▾", 9.0, C_MUTED))
+                            .show_ui(ui, |ui| {
+                                if ui.selectable_label(self.search_exclude.is_empty(), mono("(none)", 9.5, C_DIM)).clicked() {
+                                    self.search_exclude.clear();
+                                }
+                                for folder in &self.search_top_folders.clone() {
+                                    if ui.selectable_label(self.search_exclude == *folder, mono(folder, 9.5, C_TEXT)).clicked() {
+                                        self.search_exclude = folder.clone();
+                                    }
+                                }
+                            });
                     });
                 });
             });
@@ -2173,17 +2236,140 @@ impl App {
             return;
         }
 
-        let q        = self.search_query.to_lowercase();
-        let inc      = self.search_include.to_lowercase();
-        let exc      = self.search_exclude.to_lowercase();
+        if !generated_dirs::search_ready() {
+            ui.add_space(20.0);
+            ui.horizontal(|ui: &mut egui::Ui| {
+                ui.add_space(14.0);
+                ui.spinner();
+                ui.add_space(8.0);
+                ui.label(mono("Building search index…", 11.0, C_DIM));
+            });
+            ui.ctx().request_repaint_after(std::time::Duration::from_millis(200));
+            return;
+        }
 
-        let results: Vec<(String, String, String, u64)> = generated_dirs::search(&q)
-            .filter(|e| inc.is_empty() || e.folder.to_lowercase().contains(&inc))
-            .filter(|e| exc.is_empty() || !e.folder.to_lowercase().contains(&exc))
-            .take(500)
-            .map(|e| (e.name.clone(), e.folder.to_string(), format!("{}/{}", e.folder, e.name), e.size_bytes))
-            .collect();
+        let q   = self.search_query.to_lowercase();
+        let inc = self.search_include.to_lowercase();
+        let exc = self.search_exclude.to_lowercase();
 
+        if q   != self.search_last_query
+        || inc != self.search_last_include
+        || exc != self.search_last_exclude {
+            self.search_results_cache = generated_dirs::search(&q)
+                .filter(|e| inc.is_empty() || e.folder.to_lowercase().contains(&inc))
+                .filter(|e| exc.is_empty() || !e.folder.to_lowercase().contains(&exc))
+                .take(500)
+                .map(|e| (e.name.clone(), e.folder.to_string(), format!("{}/{}", e.folder, e.name), e.size_bytes))
+                .collect();
+            self.search_last_query   = q;
+            self.search_last_include = inc;
+            self.search_last_exclude = exc;
+        }
+
+        let results = &self.search_results_cache;
+        let n = results.len();
+        egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
+            .show(ui, |ui: &mut egui::Ui| {
+                ui.label(mono(
+                    if n >= 500 { "500+ matches (refine your search)".to_string() }
+                    else { format!("{} match{}", n, if n==1{""} else {"es"}) },
+                    9.0, C_MUTED));
+            });
+        hline(ui);
+
+        let row_h = 30.0;
+        let size_w = 64.0;
+        let pad    = 10.0;
+        egui::ScrollArea::vertical().id_source("search_tab_results").auto_shrink([false;2])
+            .max_width(avail_w)
+            .show_rows(ui, row_h, results.len(), |ui, range| {
+                ui.set_max_width(avail_w);
+                for (name, folder, full_path, size) in &results[range] {
+                    let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
+                    let row = egui::Rect::from_min_size(row.min, Vec2::new(avail_w, row_h));
+                    if resp.hovered() {
+                        ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
+                    }
+                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
+
+                    let text_x    = row.min.x + pad;
+                    let top_y     = row.min.y + 7.0;
+                    let bot_y     = row.min.y + 19.0;
+                    let text_max_x = row.max.x - pad - if *size > 0 { size_w } else { 0.0 };
+
+                    // Clip rect for text — prevents overflow to the right
+                    let text_clip = egui::Rect::from_min_max(
+                        egui::pos2(text_x, row.min.y),
+                        egui::pos2(text_max_x, row.max.y),
+                    );
+                    let p = ui.painter().with_clip_rect(text_clip);
+                    p.text(egui::pos2(text_x, top_y), egui::Align2::LEFT_TOP,
+                        name, FontId::monospace(11.0), C_FILE);
+                    p.text(egui::pos2(text_x, bot_y), egui::Align2::LEFT_TOP,
+                        folder, FontId::monospace(9.0), C_MUTED);
+
+                    if *size > 0 {
+                        ui.painter().text(egui::pos2(row.max.x - pad, top_y), egui::Align2::RIGHT_TOP,
+                            fmt_size(*size), FontId::monospace(9.0), C_MUTED);
+                    }
+                    if resp.clicked() {
+                        let folder_path = full_path.rsplit_once('/').map(|(p,_)| format!("{}/", p)).unwrap_or_default();
+                        self.crumb_stack.clear();
+                        let mut path = String::new();
+                        for seg in folder_path.trim_end_matches('/').split('/').filter(|s| !s.is_empty()) {
+                            path = format!("{}{}/", path, seg);
+                            self.crumb_stack.push((url_decode(seg), path.clone()));
+                        }
+                        let nav_path = self.crumb_stack.last().map(|(_,p)| p.clone()).unwrap_or_default();
+                        self.browser_tab = BrowserTab::Browse;
+                        self.navigate(nav_path);
+                    }
+                }
+            });
+    }
+
+        if self.search_query.is_empty() {
+            ui.add_space(20.0);
+            ui.horizontal(|ui: &mut egui::Ui| {
+                ui.add_space(14.0);
+                ui.label(mono("Type to search across all baked-in folders", 11.0, C_DIM));
+            });
+            return;
+        }
+
+        if !generated_dirs::search_ready() {
+            ui.add_space(20.0);
+            ui.horizontal(|ui: &mut egui::Ui| {
+                ui.add_space(14.0);
+                ui.spinner();
+                ui.add_space(8.0);
+                ui.label(mono("Building search index…", 11.0, C_DIM));
+            });
+            // Keep repainting until ready
+            ui.ctx().request_repaint_after(std::time::Duration::from_millis(200));
+            return;
+        }
+
+        let q   = self.search_query.to_lowercase();
+        let inc = self.search_include.to_lowercase();
+        let exc = self.search_exclude.to_lowercase();
+
+        // Only re-run search when query or filters change — not on every repaint
+        if q   != self.search_last_query
+        || inc != self.search_last_include
+        || exc != self.search_last_exclude {
+            self.search_results_cache = generated_dirs::search(&q)
+                .filter(|e| inc.is_empty() || e.folder.to_lowercase().contains(&inc))
+                .filter(|e| exc.is_empty() || !e.folder.to_lowercase().contains(&exc))
+                .take(500)
+                .map(|e| (e.name.clone(), e.folder.to_string(), format!("{}/{}", e.folder, e.name), e.size_bytes))
+                .collect();
+            self.search_last_query   = q;
+            self.search_last_include = inc;
+            self.search_last_exclude = exc;
+        }
+
+        let results = &self.search_results_cache;
         let n = results.len();
         egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
             .show(ui, |ui: &mut egui::Ui| {
