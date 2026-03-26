@@ -2266,7 +2266,7 @@ impl App {
             self.search_last_exclude = exc;
         }
 
-        let results = &self.search_results_cache;
+        let results = self.search_results_cache.clone();
         let n = results.len();
         egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
             .show(ui, |ui: &mut egui::Ui| {
