@@ -1562,13 +1562,14 @@ impl eframe::App for App {
 
         // ── Central panel ────────────────────────────────────────────────────
         let browser_frac = self.browser_frac;
+        let browser_w = (ctx.screen_rect().width() * browser_frac).clamp(240.0, 1200.0);
         egui::SidePanel::left("browser_panel")
             .resizable(true)
             .min_width(240.0)
             .max_width(1200.0)
-            .default_width(ctx.screen_rect().width() * browser_frac)
+            .exact_width(browser_w)
             .frame(egui::Frame::none().fill(C_BG)
-                .stroke(Stroke::new(0.0, C_BG))) // no internal border
+                .stroke(Stroke::new(0.0, C_BG)))
             .show(ctx, |ui: &mut egui::Ui| {
                 self.browser_frac = (ui.available_width() / ctx.screen_rect().width()).clamp(0.2, 0.85);
                 self.draw_browser(ui);

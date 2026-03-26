@@ -124,7 +124,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "12.0"
 
-      - name: Create universal binaries
+      - name: Create universal binaries and .app bundle
         run: |
           mkdir -p dist
           lipo -create \
@@ -137,10 +137,48 @@ jobs:
             -output dist/myrient-dl-cli-macos-universal
           chmod +x dist/myrient-dl-macos-universal dist/myrient-dl-cli-macos-universal
 
+          # Build .app bundle
+          APP=dist/myrient-dl.app
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources"
+          cp dist/myrient-dl-macos-universal "$APP/Contents/MacOS/myrient-dl"
+          cat > "$APP/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>myrient-dl</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.myrient-dl.app</string>
+            <key>CFBundleName</key>
+            <string>myrient-dl</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${{ github.ref_name }}</string>
+            <key>CFBundleVersion</key>
+            <string>${{ github.ref_name }}</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>12.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+          </dict>
+          </plist>
+          PLIST
+
+          # Remove quarantine attribute and zip the bundle
+          xattr -cr "$APP"
+          cd dist && zip -r myrient-dl-macos.zip myrient-dl.app
+          cd ..
+
       - uses: actions/upload-artifact@v4
         with:
           name: macos-universal
-          path: dist/
+          path: |
+            dist/myrient-dl-macos-universal
+            dist/myrient-dl-cli-macos-universal
+            dist/myrient-dl-macos.zip
 
   release:
     name: Create GitHub Release
@@ -162,6 +200,7 @@ jobs:
             artifacts/windows-x86_64/myrient-dl-cli-windows-x86_64.exe
             artifacts/macos-universal/myrient-dl-macos-universal
             artifacts/macos-universal/myrient-dl-cli-macos-universal
+            artifacts/macos-universal/myrient-dl-macos.zip
           generate_release_notes: true
           body: |
             ## Downloads
@@ -170,4 +209,6 @@ jobs:
             |----------|-----|-----|
             | Linux x86_64 | [myrient-dl-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-linux-x86_64) | [myrient-dl-cli-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-linux-x86_64) |
             | Windows x86_64 | [myrient-dl-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-windows-x86_64.exe) | [myrient-dl-cli-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-windows-x86_64.exe) |
-            | macOS Universal | [myrient-dl-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos-universal) | [myrient-dl-cli-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-macos-universal) |
+            | macOS Universal | [myrient-dl-macos.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos.zip) (.app bundle) · [bare binary](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos-universal) | [myrient-dl-cli-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-macos-universal) |
+
+            > **macOS:** Download `myrient-dl-macos.zip`, unzip it, and drag `myrient-dl.app` to your Applications folder. On first launch right-click → Open to bypass Gatekeeper.
