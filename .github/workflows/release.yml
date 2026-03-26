@@ -116,9 +116,13 @@ jobs:
 
       - name: Build x86_64
         run: cargo build --release --target x86_64-apple-darwin
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
 
       - name: Build arm64
         run: cargo build --release --target aarch64-apple-darwin
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
 
       - name: Create universal binaries
         run: |
@@ -164,6 +168,6 @@ jobs:
 
             | Platform | GUI | CLI |
             |----------|-----|-----|
-            | Linux x86_64 | `myrient-dl-linux-x86_64` | `myrient-dl-cli-linux-x86_64` |
-            | Windows x86_64 | `myrient-dl-windows-x86_64.exe` | `myrient-dl-cli-windows-x86_64.exe` |
-            | macOS Universal | `myrient-dl-macos-universal` | `myrient-dl-cli-macos-universal` |
+            | Linux x86_64 | [myrient-dl-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-linux-x86_64) | [myrient-dl-cli-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-linux-x86_64) |
+            | Windows x86_64 | [myrient-dl-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-windows-x86_64.exe) | [myrient-dl-cli-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-windows-x86_64.exe) |
+            | macOS Universal | [myrient-dl-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos-universal) | [myrient-dl-cli-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-macos-universal) |

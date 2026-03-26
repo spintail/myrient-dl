@@ -16,6 +16,7 @@
 //   Q          quit
 
 #[path = "../generated_dirs.rs"]
+#[allow(dead_code, unused_imports)]
 mod generated_dirs;
 //   Q          quit
 
@@ -330,9 +331,51 @@ impl App {
         self.current_path = path.clone();
         self.entries.clear(); self.load_error = None; self.loading = true;
         self.selected_urls.clear(); self.browser_state = ListState::default();
+        self.filter_query.clear();
+
+        // Check local index first
+        let key = path.trim_matches('/').to_string();
+        if let Some(baked) = generated_dirs::lookup(&key) {
+            if !baked.is_empty() {
+                self.loading = false;
+                let url_base = format!("{}{}", BASE_URL, path);
+                let entries: Vec<DirEntry> = baked.into_iter().map(|e| {
+                    let file_url = if !e.is_folder {
+                        reqwest::Url::parse(&url_base).ok()
+                            .and_then(|b| b.join(&e.href).ok())
+                            .map(|u| u.to_string())
+                    } else { None };
+                    DirEntry { name: e.name, href: e.href, size: e.size, is_folder: e.is_folder, url: file_url }
+                }).collect();
+                let folders = entries.iter().filter(|x| x.is_folder).count();
+                let files   = entries.iter().filter(|x| !x.is_folder).count();
+                self.status_msg = format!("{} folders  {}  files", folders, files);
+                self.entries = entries;
+                return;
+            }
+        }
+
+        // Fall back to live HTTP fetch
         let url = format!("{}{}", BASE_URL, path);
         let tx = self.browse_tx_clone.clone();
-        thread::spawn(move || { let _ = tx.send((path, fetch_dir(&url))); });
+        thread::spawn(move || {
+            let result = fetch_dir(&url);
+            // Persist to local index if successful
+            if let Ok(ref entries) = result {
+                let persist_entries: Vec<generated_dirs::DirEntry> = entries.iter().map(|e| {
+                    generated_dirs::DirEntry {
+                        name:       e.name.clone(),
+                        href:       e.href.clone(),
+                        size:       e.size.clone(),
+                        size_bytes: 0,
+                        date:       String::new(),
+                        is_folder:  e.is_folder,
+                    }
+                }).collect();
+                generated_dirs::persist_folder(key, persist_entries, 0);
+            }
+            let _ = tx.send((path, result));
+        });
     }
 
     fn poll_browse(&mut self) {
@@ -697,6 +740,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
 fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
     let mut app = App::new();
     app.navigate(String::new());
+    generated_dirs::init();
     generated_dirs::warm_search_index();
 
     'main: loop {
