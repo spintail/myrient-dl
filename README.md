@@ -20,7 +20,7 @@
 
 **myrient-dl** is a native cross-platform GUI app for browsing and downloading from [Myrient](https://myrient.erista.me) — a free community preservation archive hosting ROM sets, disc images, and software collections.
 
-Browse Myrient's entire directory tree, select files and folders, and download everything concurrently with live progress bars, speed, and ETA. No browser, no wget, no command line required. Also ships a full CLI mode for scripting and headless use.
+Browse Myrient's entire directory tree, select files and folders, and download everything concurrently with live progress bars, speed, and ETA. No browser, no wget, no command line required. Also ships a full TUI CLI for scripting and headless use.
 
 Written in **Rust** with **egui**. Downloads are handled entirely in-process via `reqwest` — no external tools needed on any platform.
 
@@ -29,34 +29,40 @@ Written in **Rust** with **egui**. Downloads are handled entirely in-process via
 ## Features
 
 ### Browsing
-- **Instant navigation** — the full Myrient directory tree is compiled into the binary as a compressed blob (`generated_dirs.bin`), so browsing any folder is instant with no network round-trip
+- **Instant navigation** — the full Myrient directory tree is embedded in the binary as a compressed index (`generated_dirs.bin`), so browsing any folder is instant with no network round-trip. New folders added to Myrient are fetched live via HTTP and automatically added to the local index for future instant access
 - **Live directory browser** — folder/file icons, sizes, and modification dates
 - **Breadcrumb navigation** — click any crumb to jump back; scroll position is remembered per folder
 - **Filter bar** — type to filter the current directory; Escape to clear
-- **Search** — click `⌕ search` to open a global search across the entire baked-in tree. Results show instantly; click any result to navigate to that folder
 - **Baked-in folder sizes** — sizes pre-calculated and compiled in; visible at a glance without network requests
-- **Virtual scrolling** — only visible rows rendered in both panels; fast even with thousands of items
+- **Virtual scrolling** — only visible rows rendered; fast even with thousands of items
+
+### Search
+- **Global search tab** — switch to the Search tab to search across the entire embedded tree instantly
+- **Include / exclude filters** — narrow results to a specific collection (e.g. `No-Intro`) or exclude one (e.g. `BIOS`) with free-text or dropdown selectors
+- **Results show filename + folder path** — at a glance see exactly where each file lives
+- **Queue from search** — hover any result and click `+` to add it to the queue immediately
+- **Open folder from search** — click `→` to navigate directly to the folder containing the result, with the file pre-selected
+- **Row click** — clicking a result navigates to its folder
 
 ### Selection & queuing
 - **Click to select files** — single click selects/deselects; shift-click for ranges
-- **Folder checkboxes** — large `+` checkbox on the right of every folder row. Easy to click, doesn't interfere with the folder icon. Check multiple folders then add all at once
+- **Folder checkboxes** — small checkbox on the left of every folder row
 - **Select all / deselect** — button in the filter bar, respects active filter
-- **Add to queue** — a single button queues all selected files and folders. Folder contents scanned recursively via HTTP
+- **Add to queue** — queues all selected files and folders; folder contents scanned recursively
 - **Persistent queue** — saved to `~/.local/share/myrient-dl/queue.json`, restored on relaunch
 - **Resume-first** — when restarting the queue, previously interrupted downloads resume before new ones begin
 
 ### Downloads
-- **Pure Rust downloader** — no `wget` or external tools; downloads run in-process via `reqwest` streaming
+- **Pure Rust downloader** — downloads run in-process via `reqwest` streaming; no external tools
 - **Resume support** — HTTP `Range` headers continue interrupted downloads from the exact byte
 - **Concurrent downloads** — configurable 1–16 simultaneous downloads
-- **Correct folder structure** — files saved to `<dest>/<collection>/<subfolder>/...`, preserving Myrient's path hierarchy
+- **Correct folder structure** — files saved preserving Myrient's path hierarchy
 - **Automatic retries** — configurable retry count with exponential backoff
-- **Checksum verification** — fetches `.md5` or `.sfv` sidecars and verifies; shows `✓` or `⚠`
+- **Checksum verification** — fetches `.md5` sidecars and verifies; shows `✓` or `⚠`
 - **Disk space check** — warns if available space is tight before starting
 
 ### Progress & monitoring
-- **Live progress bars** — percentage, speed (KB/s → GB/s), and ETA per download, updated 4× per second
-- **Total speed** in the downloads panel header
+- **Live progress bars** — percentage, speed, and ETA per download, updated continuously
 - **Window title** live stats: `myrient-dl  —  ↓ 87.3 MB/s  ·  6 active  ·  331 queued`
 - **Queue totals** — item count and total file size in the queue header
 
@@ -67,30 +73,34 @@ Written in **Rust** with **egui**. Downloads are handled entirely in-process via
 - **Pause & resume** individual downloads
 
 ### UI
-- **Retro theme** — vivid green-phosphor CRT palette, toggleable with the `retro`/`dim` button in the toolbar
+- **Dark / light theme** — toggle with the `dark`/`light` button in the toolbar; or check `auto` to follow the OS system theme preference automatically
 - **Resizable panels** — drag the browser/queue divider and the downloads panel edge
 - **Static scrollbars** — always visible, 10px wide — easy to grab on Windows and macOS
 - **Persistent settings** — all settings saved between sessions
 
-### CLI mode
+### CLI mode (`myrient-dl-cli`)
 
-Run downloads from the terminal without launching the GUI:
+A full terminal UI that mirrors the GUI — same download engine, same queue file, same settings.
 
 ```bash
-# Download a single file
-myrient-dl --url "https://myrient.erista.me/files/No-Intro/Nintendo%20-%20Game%20Boy/..." --dest ~/Downloads
-
-# Process the existing saved queue
-myrient-dl --cli
-
-# With custom thread count
-myrient-dl --cli --threads 8
-
-# See all options
-myrient-dl --help
+myrient-dl-cli
 ```
 
-CLI output matches the GUI's colour scheme — green `✓` for success, red `✕` for errors, yellow `⏸` for paused.
+| Key | Action |
+|-----|--------|
+| `↑` `↓` `j` `k` | Navigate list |
+| `Enter` `l` `→` | Open folder / queue file |
+| `Backspace` `h` `←` | Go back |
+| `f` | Filter current directory |
+| `Space` | Select / deselect item |
+| `a` | Select all visible files |
+| `A` | Deselect all |
+| `q` | Queue selected files |
+| `/` | Search across entire tree |
+| `Tab` | Switch browser / queue panes |
+| `s` | Start / pause queue |
+| `x` | Remove selected queue items |
+| `Q` | Quit |
 
 ---
 
@@ -98,10 +108,17 @@ CLI output matches the GUI's colour scheme — green `✓` for success, red `✕
 
 ### Pre-built binaries
 
-Download the latest release for your platform from the [Releases](../../releases) page. No installation required.
+Download the latest release for your platform from the [Releases](../../releases) page.
 
-> **Windows**: allow through SmartScreen on first run (right-click → Run anyway).  
-> **macOS**: right-click → Open to bypass Gatekeeper on first run.
+| Platform | GUI | CLI |
+|----------|-----|-----|
+| Linux x86_64 | `myrient-dl-linux-x86_64` | `myrient-dl-cli-linux-x86_64` |
+| Windows x86_64 | `myrient-dl-windows-x86_64.exe` | `myrient-dl-cli-windows-x86_64.exe` |
+| macOS Universal | `myrient-dl.app` | `myrient-dl-cli-macos-universal` |
+
+> **Windows:** right-click → Run anyway to bypass SmartScreen on first run.  
+> **macOS:** drag `myrient-dl.app` to Applications. Right-click → Open on first launch to bypass Gatekeeper.  
+> **Linux:** `chmod +x myrient-dl-linux-x86_64` then run.
 
 ### Build from source
 
@@ -126,52 +143,41 @@ cargo build --release
 ./target/release/myrient-dl
 ```
 
-> **Memory note:** the `generated_sizes` module contains ~67,000 folder sizes split across 135 source files to keep per-file compile memory manageable. On an 8 GB machine, try `cargo build --release -j1` if compilation OOMs.
-
 ---
 
 ## Directory tree data
 
-The baked-in directory tree (`generated_dirs.bin`) enables instant navigation without any HTTP requests. It's stored as a deflate-compressed JSON blob embedded at compile time and decompressed lazily on first use.
+The embedded directory index (`generated_dirs.bin`) enables instant navigation without HTTP requests. It's stored as a zstd-compressed per-folder block index. New folders visited at runtime are automatically persisted to `~/.local/share/myrient-dl/generated_dirs.bin`, which takes precedence over the embedded data on future launches.
 
-To populate or refresh it, run `fetch_sizes`:
+To regenerate the index from scratch or refresh changed folders:
 
 ```bash
-# First run: crawls the entire Myrient tree (several hours, resumes if interrupted)
-cargo run --bin fetch_sizes
+# Rebuild from existing cache (fast — seconds):
+cargo run --bin fetch_sizes -- --dirs-only
 
-# Subsequent runs: only re-crawls folders whose modification date changed
+# Re-crawl folders whose modification date changed on the server:
 cargo run --bin fetch_sizes -- --refresh
 
-# Rebuild to embed the new data
+# Full crawl from scratch (several hours, resumes if interrupted):
+cargo run --bin fetch_sizes
+
+# Then rebuild the app to embed the new data:
 cargo build --release
 ```
 
-The crawler checkpoints to `fetch_sizes_cache.json`. Delete it to force a full re-crawl.
-
-Without running `fetch_sizes`, the app still works — navigation just makes live HTTP requests instead of using the baked-in tree (same as before, just slower).
+The crawler checkpoints to `fetch_sizes_cache.json`. Without running `fetch_sizes`, the app still works fully — navigation just makes live HTTP requests for unknown folders and persists them locally.
 
 ---
 
-## Usage
-
-### GUI
-1. Launch — opens at the Myrient `/files/` root
-2. Click folders to navigate; use breadcrumbs to go back
-3. Use `⌕ search` to find files across the whole tree instantly
-4. **Select files** by clicking rows (shift-click for ranges)
-5. **Select folders** by clicking the `+` checkbox on the right of any folder row
-6. Click **Add N files + N folders to queue**
-7. Click **▶ Start queue** — resume-first downloads begin immediately
-
-### Settings
+## Settings
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | Dest | `~/Downloads/myrient` | Root folder for all downloads |
 | Threads | 4 | Simultaneous downloads (1–16) |
 | Retries | 3 | Retry attempts on failure |
-| Verify | ✓ | Check MD5/SFV after download |
+| Verify | ✓ | Check MD5 after download |
+| Theme | dark | `dark` / `light` / `auto` (follows OS) |
 
 ---
 
@@ -185,8 +191,8 @@ Without running `fetch_sizes`, the app still works — navigation just makes liv
 └──────┬──────┘             └─────────────────────────────┘
        │                    ┌─────────────────────────────┐
        │                    │  generated_dirs.bin         │
-       │                    │  (deflate-compressed tree,  │
-       │                    │   instant local lookup)     │
+       │                    │  (zstd per-folder blocks,   │
+       │                    │   local file auto-updated)  │
        │                    └─────────────────────────────┘
        │ DlCmd channel
        ▼
@@ -206,16 +212,16 @@ Without running `fetch_sizes`, the app still works — navigation just makes liv
 | `eframe` / `egui` | Native GUI |
 | `reqwest` | HTTP client — browsing and downloading |
 | `scraper` | HTML parsing for live directory fetches |
-| `serde` / `serde_json` | Settings, queue persistence, dir tree |
+| `serde` / `serde_json` | Settings, queue persistence |
+| `zstd` | Block compression for `generated_dirs.bin` |
 | `shellexpand` | `~/` path expansion |
 | `rfd` | Native folder picker dialog |
 | `md5` | Checksum verification |
-| `flate2` | Deflate compression for `generated_dirs.bin` |
 | `clap` | CLI argument parsing |
 | `libc` | `statvfs` disk space (Unix) |
 | `windows-sys` | `GetDiskFreeSpaceExW` (Windows) |
 | `rayon` | Parallel crawling in `fetch_sizes` |
-| `once_cell` | Lazy static HTTP client |
+| `ratatui` / `crossterm` | Terminal UI for CLI mode |
 
 ---
 
@@ -239,53 +245,3 @@ MIT — see [LICENSE](LICENSE)
 ## Acknowledgements
 
 [Myrient](https://myrient.erista.me) is a free, community-run preservation archive. Please [consider donating](https://myrient.erista.me/donate/) to help keep it running.
-
----
-
-## CLI mode (`myrient-dl-cli`)
-
-A full terminal UI that mirrors the GUI — same download engine, same queue file, same settings.
-
-```
-myrient-dl-cli
-```
-
-### Controls
-
-| Key | Action |
-|-----|--------|
-| `↑` `↓` `j` `k` | Navigate list |
-| `Enter` `l` `→` | Open folder / queue file |
-| `Backspace` `h` `←` | Go back |
-| `Space` | Select / deselect item |
-| `a` | Select all visible files |
-| `A` | Deselect all |
-| `q` | Queue selected files |
-| `Tab` | Switch between browser and queue panes |
-| `s` | Start / pause queue |
-| `x` | Remove selected queue items |
-| `/` | Search across entire baked-in tree |
-| `Esc` | Cancel search |
-| `Q` | Quit |
-
-### Platform availability
-
-| Platform | GUI | CLI |
-|----------|-----|-----|
-| Linux | ✓ | ✓ |
-| macOS | ✓ | ✓ |
-| Windows | ✓ | ✓ |
-
----
-
-## Regenerating `generated_dirs.bin` from existing cache
-
-If you have already run `fetch_sizes` and have a `fetch_sizes_cache.json`, you do **not** need to re-crawl. Just run:
-
-```bash
-cargo run --bin fetch_sizes -- --dirs-only
-# → writes src/generated_dirs.bin in seconds from the cache
-cargo build --release
-```
-
-`--dirs-only` skips all HTTP requests when the cache is populated and immediately emits the binary from what's already stored locally.

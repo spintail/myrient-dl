@@ -133,7 +133,8 @@ struct Settings {
     max_retries:      u32,
     verify_checksums: bool,
     queue_paused:     bool,
-    retro_theme:      bool,
+    light_mode:       bool,
+    auto_theme:       bool,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -143,7 +144,8 @@ impl Default for Settings {
             max_retries:      3,
             verify_checksums: true,
             queue_paused:     true,
-            retro_theme:      false,
+            light_mode:       false,
+            auto_theme:       false,
         }
     }
 }
@@ -968,6 +970,7 @@ struct App {
     search_last_include:  String,
     search_last_exclude:  String,
     search_top_folders:   Vec<String>,
+    search_highlight:     Option<String>, // filename to highlight after navigating from search
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
@@ -976,7 +979,11 @@ struct App {
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let settings = load_settings();
-        apply_theme(&cc.egui_ctx, settings.retro_theme);
+        if settings.auto_theme {
+            apply_auto_theme(&cc.egui_ctx);
+        } else {
+            apply_theme(&cc.egui_ctx, settings.light_mode);
+        }
         setup_fonts(&cc.egui_ctx);
         let shared     = Arc::new(Mutex::new(Shared::default()));
         let saved      = load_queue();
@@ -1029,6 +1036,7 @@ impl App {
             search_last_include: String::new(),
             search_last_exclude: String::new(),
             search_top_folders:  Vec::new(),
+            search_highlight:    None,
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
@@ -1094,6 +1102,18 @@ impl App {
                     self.entries    = e;
                     self.load_error = None;
                     self.pending_scroll_restore = true;
+
+                    // If we navigated here from search with a highlight, select that file
+                    if let Some(ref highlight) = self.search_highlight.clone() {
+                        for entry in &self.entries {
+                            if !entry.is_folder && entry.name.to_lowercase() == highlight.to_lowercase() {
+                                if let Some(ref url) = entry.url {
+                                    self.selected_urls.insert(url.to_string());
+                                }
+                            }
+                        }
+                        self.search_highlight = None;
+                    }
                 }
                 Err(e) => { self.load_error = Some(e.clone()); self.status_msg = format!("Error: {}", e); }
             }
@@ -1168,6 +1188,27 @@ impl App {
         // kick_downloads() is called by poll() automatically when slots are free,
         // so we don't need to call it here for every file added
         true
+    }
+
+    /// Queue a single file directly by URL, name and size (e.g. from search results).
+    fn queue_file(&mut self, url: String, name: String, size_bytes: u64, folder_path: String) {
+        if self.queued_urls.contains(&url) { return; }
+        let job = QueueJob {
+            id:          next_id(),
+            url:         url.clone(),
+            name:        name.clone(),
+            path:        folder_path,
+            status:      JobStatus::Waiting,
+            resume:      false,
+            retry_count: 0,
+            verified:    None,
+            file_size:   size_bytes,
+        };
+        self.queued_urls.insert(url);
+        let mut s = self.shared.lock().unwrap();
+        s.queue.push(job);
+        s.push_log(format!("Queued: {}", name), false);
+        save_queue(&s.queue);
     }
 
     fn kick_downloads(&mut self) {
@@ -1267,39 +1308,40 @@ fn dark_visuals() -> egui::Visuals {
     v
 }
 
-fn retro_visuals() -> egui::Visuals {
-    // Vivid green-phosphor CRT palette
-    let bg      = Color32::from_rgb(0x04, 0x08, 0x05);
-    let surf    = Color32::from_rgb(0x07, 0x10, 0x09);
-    let surf2   = Color32::from_rgb(0x0c, 0x18, 0x0e);
-    let border  = Color32::from_rgb(0x14, 0x2e, 0x18);
-    let border2 = Color32::from_rgb(0x1e, 0x48, 0x24);
-    let acc     = C_ACC;
-    let text    = Color32::from_rgb(0x9a, 0xff, 0xb4);  // bright phosphor green
-    let mut v = egui::Visuals::dark();
-    v.panel_fill       = bg;
-    v.window_fill      = surf;
-    v.faint_bg_color   = surf2;
-    v.extreme_bg_color = border;
-    v.window_stroke    = Stroke::new(1.0, border2);
-    v.widgets.noninteractive.bg_fill   = surf;
-    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, border);
-    v.widgets.inactive.bg_fill         = surf2;
-    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, border2);
-    v.widgets.hovered.bg_fill          = Color32::from_rgb(0x0e, 0x28, 0x12);
-    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, border2);
-    v.widgets.active.bg_fill           = Color32::from_rgb(0x08, 0x1e, 0x0c);
-    v.widgets.active.bg_stroke         = Stroke::new(1.0, acc);
-    v.selection.bg_fill                = Color32::from_rgb(0x08, 0x28, 0x10);
-    v.selection.stroke                 = Stroke::new(1.0, acc);
-    v.override_text_color              = Some(text);
-    v.hyperlink_color                  = acc;
+fn light_visuals() -> egui::Visuals {
+    let mut v = egui::Visuals::light();
+    v.panel_fill       = Color32::from_rgb(0xf2, 0xf4, 0xf6);
+    v.window_fill      = Color32::from_rgb(0xff, 0xff, 0xff);
+    v.faint_bg_color   = Color32::from_rgb(0xe8, 0xec, 0xf0);
+    v.extreme_bg_color = Color32::from_rgb(0xd8, 0xde, 0xe4);
+    v.window_stroke    = Stroke::new(1.0, Color32::from_rgb(0xcc, 0xd2, 0xd8));
+    v.widgets.noninteractive.bg_fill   = Color32::from_rgb(0xf8, 0xf9, 0xfa);
+    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0xcc, 0xd2, 0xd8));
+    v.widgets.inactive.bg_fill         = Color32::from_rgb(0xee, 0xf1, 0xf4);
+    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, Color32::from_rgb(0xc0, 0xc8, 0xd0));
+    v.widgets.hovered.bg_fill          = Color32::from_rgb(0xe0, 0xe8, 0xf0);
+    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
+    v.widgets.active.bg_fill           = Color32::from_rgb(0xd4, 0xf0, 0xe4);
+    v.widgets.active.bg_stroke         = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
+    v.selection.bg_fill                = Color32::from_rgb(0xc8, 0xf0, 0xdc);
+    v.selection.stroke                 = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
+    v.override_text_color              = Some(Color32::from_rgb(0x1a, 0x24, 0x30));
+    v.hyperlink_color                  = Color32::from_rgb(0x00, 0x7a, 0x50);
     v.warn_fg_color = C_WARN; v.error_fg_color = C_ERR;
     v
 }
 
-fn apply_theme(ctx: &egui::Context, retro: bool) {
-    ctx.set_visuals(if retro { retro_visuals() } else { dark_visuals() });
+fn apply_theme(ctx: &egui::Context, light: bool) {
+    ctx.set_visuals(if light { light_visuals() } else { dark_visuals() });
+}
+
+/// Check OS preference and apply if auto_theme is enabled.
+fn apply_auto_theme(ctx: &egui::Context) {
+    // egui exposes the system theme preference via system_theme()
+    if let Some(theme) = ctx.system_theme() {
+        let light = theme == egui::Theme::Light;
+        ctx.set_visuals(if light { light_visuals() } else { dark_visuals() });
+    }
 }
 
 fn setup_fonts(ctx: &egui::Context) {
@@ -1350,8 +1392,12 @@ impl eframe::App for App {
             s.progress.clone() // only active downloads — small
         };
 
-        if self.loading || active_dl > 0 || has_spooling || has_waiting || self.settings.retro_theme {
+        if self.loading || active_dl > 0 || has_spooling || has_waiting {
             ctx.request_repaint_after(Duration::from_millis(50));
+        }
+        // Apply OS theme continuously when auto_theme is enabled
+        if self.settings.auto_theme {
+            apply_auto_theme(ctx);
         }
 
         if self.status_active && active_dl == 0 {
@@ -1405,18 +1451,33 @@ impl eframe::App for App {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
                         ui.add_space(10.0);
 
-                        // Retro theme toggle — rightmost
-                        let retro = self.settings.retro_theme;
-                        let label = if retro { "retro" } else { "dim" };
-                        let col   = if retro { C_ACC } else { C_MUTED };
-                        if ui.add(egui::Button::new(mono(label, 9.0, col))
-                            .fill(Color32::TRANSPARENT)
-                            .stroke(Stroke::new(0.5, C_BORDER2))
-                            .min_size(Vec2::new(38.0, 20.0))
-                        ).on_hover_text("Toggle retro theme").clicked() {
-                            self.settings.retro_theme = !self.settings.retro_theme;
+                        // Theme controls — rightmost
+                        let auto = self.settings.auto_theme;
+                        let light = self.settings.light_mode;
+                        // Auto-theme checkbox
+                        let mut auto_val = auto;
+                        let auto_resp = ui.checkbox(&mut auto_val, mono("auto", 9.0, C_MUTED));
+                        if auto_resp.changed() {
+                            self.settings.auto_theme = auto_val;
                             self.settings_dirty = true;
-                            apply_theme(ctx, self.settings.retro_theme);
+                            if !auto_val {
+                                apply_theme(ctx, light);
+                            }
+                        }
+                        ui.add_space(4.0);
+                        // Light/dark toggle button
+                        let (label, col) = if light { ("light", C_ACC) } else { ("dark", C_MUTED) };
+                        let btn = ui.add_enabled(
+                            !auto,
+                            egui::Button::new(mono(label, 9.0, col))
+                                .fill(Color32::TRANSPARENT)
+                                .stroke(Stroke::new(0.5, C_BORDER2))
+                                .min_size(Vec2::new(38.0, 20.0))
+                        );
+                        if btn.on_hover_text("Toggle light/dark theme").clicked() {
+                            self.settings.light_mode = !light;
+                            self.settings_dirty = true;
+                            apply_theme(ctx, !light);
                         }
                         ui.add_space(6.0); vsep(ui); ui.add_space(6.0);
 
@@ -1512,16 +1573,7 @@ impl eframe::App for App {
                 egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(12.0, 4.0))
                     .show(ui, |ui: &mut egui::Ui| {
                         ui.horizontal(|ui: &mut egui::Ui| {
-                            let dot_col = if self.status_active {
-                                if self.settings.retro_theme {
-                                    let t = ctx.input(|i| i.time);
-                                    let a = (((t * std::f64::consts::TAU / 1.8).sin() as f32 + 1.0) / 2.0 * 155.0 + 100.0) as u8;
-                                    Color32::from_rgba_premultiplied(
-                                        (C_ACC.r() as f32 * a as f32 / 255.0) as u8,
-                                        (C_ACC.g() as f32 * a as f32 / 255.0) as u8,
-                                        (C_ACC.b() as f32 * a as f32 / 255.0) as u8, a)
-                                } else { C_ACC }
-                            } else { C_DIM };
+                            let dot_col = if self.status_active { C_ACC } else { C_DIM };
                             ui.label(mono("●", 8.0, dot_col));
                             ui.add_space(6.0);
                             if active_jobs.is_empty() {
@@ -2278,9 +2330,18 @@ impl App {
             });
         hline(ui);
 
-        let row_h = 30.0;
-        let size_w = 64.0;
-        let pad    = 10.0;
+        let row_h = 36.0;
+        let pad   = 10.0;
+        let btn_w = 22.0;
+        let btn_gap = 3.0;
+        let btns_w = btn_w * 2.0 + btn_gap + pad; // queue + open buttons + right pad
+        let size_w = 58.0;
+
+        // Collect actions outside closure to avoid borrow conflict
+        let mut action_queue_url:  Option<(String, String, u64, String)> = None; // (url, name, size_bytes, folder)
+        let mut action_open_folder: Option<String> = None; // folder path to navigate to
+        let mut action_open_and_highlight: Option<(String, String)> = None; // (folder, filename)
+
         egui::ScrollArea::vertical().id_source("search_tab_results").auto_shrink([false;2])
             .max_width(avail_w)
             .show_rows(ui, row_h, results.len(), |ui, range| {
@@ -2288,21 +2349,49 @@ impl App {
                 for (name, folder, full_path, size) in &results[range] {
                     let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
                     let row = egui::Rect::from_min_size(row.min, Vec2::new(avail_w, row_h));
-                    if resp.hovered() {
+                    let hovered = resp.hovered();
+                    if hovered {
                         ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
                     }
                     ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
 
-                    let text_x    = row.min.x + pad;
-                    let top_y     = row.min.y + 7.0;
-                    let bot_y     = row.min.y + 19.0;
-                    let text_max_x = row.max.x - pad - if *size > 0 { size_w } else { 0.0 };
+                    // Action buttons — right side, visible on hover
+                    let cy = row.center().y;
+                    if hovered {
+                        // "→" open folder and highlight file
+                        let open_rect = egui::Rect::from_center_size(
+                            egui::pos2(row.max.x - pad - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
+                        let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
+                        ui.painter().rect_filled(open_rect, 2.0, C_SURF2);
+                        ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, C_BORDER2));
+                        ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER,
+                            "→", FontId::monospace(10.0), if open_resp.hovered() { C_TEXT } else { C_MUTED });
+                        if open_resp.clicked() {
+                            action_open_and_highlight = Some((folder.clone(), name.clone()));
+                        }
 
-                    // Clip rect for text — prevents overflow to the right
+                        // "+" queue file
+                        let q_rect = egui::Rect::from_center_size(
+                            egui::pos2(row.max.x - pad - btn_w - btn_gap - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
+                        let q_resp = ui.allocate_rect(q_rect, egui::Sense::click());
+                        ui.painter().rect_filled(q_rect, 2.0, C_SURF2);
+                        ui.painter().rect_stroke(q_rect, 2.0, Stroke::new(1.0, C_BORDER2));
+                        ui.painter().text(q_rect.center(), egui::Align2::CENTER_CENTER,
+                            "+", FontId::monospace(12.0), if q_resp.hovered() { C_ACC } else { C_MUTED });
+                        if q_resp.clicked() {
+                            let file_url = format!("{}{}/{}", BASE_URL,
+                                folder.trim_end_matches('/'), name);
+                            action_queue_url = Some((file_url, name.clone(), *size, folder.clone()));
+                        }
+                    }
+
+                    // Text — clipped to avoid overlapping buttons
+                    let text_x = row.min.x + pad;
+                    let top_y  = row.min.y + 8.0;
+                    let bot_y  = row.min.y + 22.0;
+                    let text_max_x = row.max.x - btns_w - if *size > 0 { size_w } else { 0.0 };
                     let text_clip = egui::Rect::from_min_max(
-                        egui::pos2(text_x, row.min.y),
-                        egui::pos2(text_max_x, row.max.y),
-                    );
+                        egui::pos2(text_x, row.min.y), egui::pos2(text_max_x, row.max.y));
                     let p = ui.painter().with_clip_rect(text_clip);
                     p.text(egui::pos2(text_x, top_y), egui::Align2::LEFT_TOP,
                         name, FontId::monospace(11.0), C_FILE);
@@ -2310,23 +2399,43 @@ impl App {
                         folder, FontId::monospace(9.0), C_MUTED);
 
                     if *size > 0 {
-                        ui.painter().text(egui::pos2(row.max.x - pad, top_y), egui::Align2::RIGHT_TOP,
+                        let size_x = row.max.x - btns_w - size_w + pad/2.0;
+                        ui.painter().text(egui::pos2(size_x, top_y), egui::Align2::LEFT_TOP,
                             fmt_size(*size), FontId::monospace(9.0), C_MUTED);
                     }
+
+                    // Row click (not on buttons) — open folder
                     if resp.clicked() {
-                        let folder_path = full_path.rsplit_once('/').map(|(p,_)| format!("{}/", p)).unwrap_or_default();
-                        self.crumb_stack.clear();
-                        let mut path = String::new();
-                        for seg in folder_path.trim_end_matches('/').split('/').filter(|s| !s.is_empty()) {
-                            path = format!("{}{}/", path, seg);
-                            self.crumb_stack.push((url_decode(seg), path.clone()));
-                        }
-                        let nav_path = self.crumb_stack.last().map(|(_,p)| p.clone()).unwrap_or_default();
-                        self.browser_tab = BrowserTab::Browse;
-                        self.navigate(nav_path);
+                        action_open_folder = Some(folder.clone());
+                        let _ = full_path;
                     }
                 }
             });
+
+        // Process actions after closure (avoids borrow conflict with self)
+        if let Some((url, name, size_bytes, folder)) = action_queue_url {
+            self.queue_file(url, name, size_bytes, folder);
+        }
+        if let Some((folder, filename)) = action_open_and_highlight {
+            let mut path = String::new();
+            for seg in folder.trim_matches('/').split('/').filter(|s| !s.is_empty()) {
+                path = format!("{}{}/", path, seg);
+                self.crumb_stack.push((url_decode(seg), path.clone()));
+            }
+            self.search_highlight = Some(filename);
+            self.browser_tab = BrowserTab::Browse;
+            self.navigate(path);
+        }
+        if let Some(folder) = action_open_folder {
+            self.crumb_stack.clear();
+            let mut path = String::new();
+            for seg in folder.trim_matches('/').split('/').filter(|s| !s.is_empty()) {
+                path = format!("{}{}/", path, seg);
+                self.crumb_stack.push((url_decode(seg), path.clone()));
+            }
+            self.browser_tab = BrowserTab::Browse;
+            self.navigate(path);
+        }
 
     }
 
