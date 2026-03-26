@@ -970,7 +970,8 @@ struct App {
     search_last_include:  String,
     search_last_exclude:  String,
     search_top_folders:   Vec<String>,
-    search_highlight:     Option<String>, // filename to highlight after navigating from search
+    search_highlight:     Option<String>,
+    os_prefers_dark:      bool,  // sampled once at startup from egui default visuals
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
@@ -980,7 +981,7 @@ impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let settings = load_settings();
         if settings.auto_theme {
-            apply_auto_theme(&cc.egui_ctx);
+            apply_theme(&cc.egui_ctx, !app.os_prefers_dark);
         } else {
             apply_theme(&cc.egui_ctx, settings.light_mode);
         }
@@ -1037,6 +1038,7 @@ impl App {
             search_last_exclude: String::new(),
             search_top_folders:  Vec::new(),
             search_highlight:    None,
+            os_prefers_dark:     cc.egui_ctx.style().visuals.dark_mode,
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
@@ -1335,15 +1337,6 @@ fn apply_theme(ctx: &egui::Context, light: bool) {
     ctx.set_visuals(if light { light_visuals() } else { dark_visuals() });
 }
 
-/// Check OS preference and apply if auto_theme is enabled.
-fn apply_auto_theme(ctx: &egui::Context) {
-    // egui exposes the system theme preference via system_theme()
-    if let Some(theme) = ctx.system_theme() {
-        let light = theme == egui::Theme::Light;
-        ctx.set_visuals(if light { light_visuals() } else { dark_visuals() });
-    }
-}
-
 fn setup_fonts(ctx: &egui::Context) {
     let mut style = (*ctx.style()).clone();
     style.text_styles = [
@@ -1397,7 +1390,7 @@ impl eframe::App for App {
         }
         // Apply OS theme continuously when auto_theme is enabled
         if self.settings.auto_theme {
-            apply_auto_theme(ctx);
+            apply_theme(ctx, !self.os_prefers_dark);
         }
 
         if self.status_active && active_dl == 0 {
