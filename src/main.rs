@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod generated_sizes;
 mod generated_dirs;
 
 use eframe::egui::{self, Color32, FontId, RichText, Stroke, Vec2};
@@ -901,7 +900,7 @@ fn estimated_size(url: &str) -> u64 {
         .and_then(|u| Some(u.path_segments()?.map(|s| s.to_string()).collect::<Vec<_>>()))
         .unwrap_or_default();
     if parts.len() >= 2 {
-        if let Some(&(bytes, _)) = generated_sizes::folder_sizes().get(parts[1].as_str()) {
+        if let Some(bytes) = generated_dirs::folder_size(&parts[1]) {
             return bytes;
         }
     }
@@ -918,6 +917,9 @@ fn guess_dest_path(dest: &str, url: &str) -> Option<String> {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
+#[derive(PartialEq, Clone, Copy)]
+enum BrowserTab { Browse, Search }
+
 struct App {
     shared:               Arc<Mutex<Shared>>,
     settings:             Settings,
@@ -942,8 +944,11 @@ struct App {
     folder_pick_tx:       std::sync::mpsc::Sender<Option<String>>,
     folder_pick_rx:       std::sync::mpsc::Receiver<Option<String>>,
     filter_query:         String,
-    search_query:         String,   // global cross-directory search
+    search_query:         String,
     search_open:          bool,
+    browser_tab:          BrowserTab,
+    search_include:       String,
+    search_exclude:       String,
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
@@ -997,10 +1002,15 @@ impl App {
             filter_query:  String::new(),
             search_query:  String::new(),
             search_open:   false,
+            browser_tab:   BrowserTab::Browse,
+            search_include: String::new(),
+            search_exclude: String::new(),
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
         app.navigate(String::new());
+        // Start building search index in background so first search is instant
+        generated_dirs::warm_search_index();
         app
     }
 
@@ -1299,26 +1309,37 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.poll();
 
-        let (queue_snap, prog_snap, active_dl) = {
+        // Snapshot only what's needed for rendering — avoid cloning the full queue
+        let (has_spooling, has_waiting, queue_len_for_ui, active_dl) = {
             let s = self.shared.lock().unwrap();
-            (s.queue.clone(), s.progress.clone(), s.active_dl)
+            (
+                s.queue.iter().any(|j| j.status == JobStatus::Spooling),
+                s.queue.iter().any(|j| j.status == JobStatus::Waiting),
+                s.queue.len(),
+                s.active_dl,
+            )
+        };
+        let prog_snap = {
+            let s = self.shared.lock().unwrap();
+            s.progress.clone() // only active downloads — small
         };
 
-        if self.loading || active_dl > 0
-            || queue_snap.iter().any(|j| j.status == JobStatus::Spooling)
-            || queue_snap.iter().any(|j| j.status == JobStatus::Waiting)
-            || self.settings.retro_theme {
+        if self.loading || active_dl > 0 || has_spooling || has_waiting || self.settings.retro_theme {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
 
         if self.status_active && active_dl == 0 {
-            if !queue_snap.iter().any(|j| j.status.is_active()) {
+            if !has_spooling {
+                let (done, errs) = {
+                    let s = self.shared.lock().unwrap();
+                    let done = s.queue.iter().filter(|j| j.status == JobStatus::Done).count();
+                    let errs = s.queue.iter().filter(|j| matches!(j.status, JobStatus::Error(_))).count();
+                    (done, errs)
+                };
                 self.status_active = false;
-                let done = queue_snap.iter().filter(|j| j.status == JobStatus::Done).count();
-                let errs = queue_snap.iter().filter(|j| matches!(j.status, JobStatus::Error(_))).count();
                 if done + errs > 0 {
-                    self.status_msg = format!("Finished — {} done{}",
-                        done, if errs > 0 { format!(", {} failed", errs) } else { String::new() });
+                    self.status_msg = format!("Finished — {} done{}", done,
+                        if errs > 0 { format!(", {} failed", errs) } else { String::new() });
                 }
             }
         }
@@ -1326,17 +1347,15 @@ impl eframe::App for App {
 
         // Update window title with live stats
         {
+            let total_bps: f64 = prog_snap.values().map(|p| p.speed_bps).sum();
+            let waiting = { self.shared.lock().unwrap().queue.iter().filter(|j| j.status == JobStatus::Waiting).count() };
             let title = if active_dl > 0 {
-                let total_bps: f64 = prog_snap.values().map(|p| p.speed_bps).sum();
-                let waiting = queue_snap.iter().filter(|j| j.status == JobStatus::Waiting).count();
                 if total_bps > 0.0 {
-                    format!("myrient-dl  —  ↓ {}  ·  {} active  ·  {} queued",
-                        fmt_speed(total_bps), active_dl, waiting)
+                    format!("myrient-dl  —  ↓ {}  ·  {} active  ·  {} queued", fmt_speed(total_bps), active_dl, waiting)
                 } else {
                     format!("myrient-dl  —  {} active  ·  {} queued", active_dl, waiting)
                 }
-            } else if !queue_snap.is_empty() {
-                let waiting = queue_snap.iter().filter(|j| j.status == JobStatus::Waiting).count();
+            } else if queue_len_for_ui > 0 {
                 format!("myrient-dl  —  {} queued", waiting)
             } else {
                 "myrient-dl".to_string()
@@ -1449,6 +1468,7 @@ impl eframe::App for App {
             });
 
         // ── Active downloads panel — always visible, fixed 5-slot height ──────
+        let queue_snap: Vec<QueueJob> = self.shared.lock().unwrap().queue.clone();
         let active_jobs: Vec<&QueueJob> = queue_snap.iter()
             .filter(|j| j.status.is_active()).collect();
 
@@ -1621,7 +1641,37 @@ impl App {
     // ── Browser ───────────────────────────────────────────────────────────────
     fn draw_browser(&mut self, ui: &mut egui::Ui) {
         ui.vertical(|ui: &mut egui::Ui| {
-            // Breadcrumb bar
+            // Tab bar: Browse | Search
+            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 4.0))
+                .show(ui, |ui: &mut egui::Ui| {
+                    ui.horizontal(|ui: &mut egui::Ui| {
+                        let browse_active = self.browser_tab == BrowserTab::Browse;
+                        let search_active = self.browser_tab == BrowserTab::Search;
+                        if ui.add(egui::Button::new(mono("BROWSE", 9.5,
+                            if browse_active { C_TEXT } else { C_MUTED }))
+                            .fill(if browse_active { C_SURF2 } else { Color32::TRANSPARENT })
+                            .stroke(if browse_active { Stroke::new(1.0, C_BORDER2) } else { Stroke::NONE })
+                            .min_size(Vec2::new(60.0, 20.0))
+                        ).clicked() { self.browser_tab = BrowserTab::Browse; }
+                        ui.add_space(4.0);
+                        let lbl = if !self.search_query.is_empty() {
+                            mono(format!("SEARCH  ·  {}", &self.search_query[..self.search_query.len().min(20)]), 9.5, C_ACC)
+                        } else { mono("SEARCH", 9.5, if search_active { C_TEXT } else { C_MUTED }) };
+                        if ui.add(egui::Button::new(lbl)
+                            .fill(if search_active { C_SURF2 } else { Color32::TRANSPARENT })
+                            .stroke(if search_active { Stroke::new(1.0, C_BORDER2) } else { Stroke::NONE })
+                            .min_size(Vec2::new(60.0, 20.0))
+                        ).clicked() { self.browser_tab = BrowserTab::Search; }
+                    });
+                });
+            hline(ui);
+
+            match self.browser_tab {
+                BrowserTab::Search => { self.draw_search_tab(ui); return; }
+                BrowserTab::Browse => {}
+            }
+
+            // ── Breadcrumb bar ──
             egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 5.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(26.0);
@@ -1657,104 +1707,6 @@ impl App {
                     });
                 });
             hline(ui);
-
-            // Search bar (shown when toggled open, or always show a compact toggle)
-            egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 4.0))
-                .show(ui, |ui: &mut egui::Ui| {
-                    ui.set_min_height(24.0);
-                    ui.horizontal(|ui: &mut egui::Ui| {
-                        let search_active = !self.search_query.is_empty();
-                        let btn_col = if search_active { C_ACC } else { C_MUTED };
-                        if ui.add(egui::Button::new(mono("⌕ search", 9.0, btn_col))
-                            .fill(Color32::TRANSPARENT).frame(false))
-                            .clicked() {
-                            self.search_open = !self.search_open;
-                            if !self.search_open { self.search_query.clear(); }
-                        }
-                        if self.search_open {
-                            ui.add_space(6.0);
-                            let resp = ui.add(
-                                egui::TextEdit::singleline(&mut self.search_query)
-                                    .font(FontId::monospace(11.0))
-                                    .desired_width(ui.available_width() - 40.0)
-                                    .hint_text("search all folders…")
-                                    .text_color(C_TEXT)
-                            );
-                            if resp.gained_focus() { }
-                            if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-                                self.search_query.clear();
-                                self.search_open = false;
-                            }
-                            if search_active {
-                                ui.add_space(4.0);
-                                if ui.add(egui::Button::new(mono("✕", 9.0, C_MUTED)).frame(false)).clicked() {
-                                    self.search_query.clear();
-                                    self.search_open = false;
-                                }
-                            }
-                        }
-                    });
-                });
-
-            // Search results panel (shown when query is non-empty)
-            if !self.search_query.is_empty() {
-                let q = self.search_query.to_lowercase();
-                // Search baked-in dir entries
-                let results: Vec<(String, String, String)> = generated_dirs::search(&q)
-                    .take(200)
-                    .map(|e| (e.name.clone(), format!("{}/{}", e.folder, e.name), e.size.clone()))
-                    .collect();
-                hline(ui);
-                egui::Frame::none().fill(C_BG).inner_margin(egui::Margin::symmetric(0.0, 0.0))
-                    .show(ui, |ui: &mut egui::Ui| {
-                        let avail_w = ui.available_width();
-                        let n = results.len();
-                        ui.horizontal(|ui: &mut egui::Ui| {
-                            ui.add_space(10.0);
-                            ui.label(mono(
-                                if n == 200 { format!("200+ matches") } else { format!("{} match{}", n, if n==1{""} else {"es"}) },
-                                9.0, C_MUTED));
-                        });
-                        let row_h = 26.0;
-                        egui::ScrollArea::vertical().id_source("search_results").max_height(300.0).auto_shrink([false;2])
-                            .show_rows(ui, row_h, results.len(), |ui, range| {
-                                for (name, full_href, size) in &results[range] {
-                                    let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
-                                    if resp.hovered() {
-                                        ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
-                                    }
-                                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
-                                    let cx = row.min.x + 10.0;
-                                    let cy = row.center().y;
-                                    ui.painter().text(egui::pos2(cx, cy), egui::Align2::LEFT_CENTER, name, FontId::monospace(11.0), C_FILE);
-                                    if !size.is_empty() {
-                                        ui.painter().text(egui::pos2(row.max.x - 8.0, cy), egui::Align2::RIGHT_CENTER, size, FontId::monospace(9.0), C_MUTED);
-                                    }
-                                    if resp.clicked() {
-                                        // Navigate to the folder containing this file
-                                        let folder_path = full_href.rsplit_once('/').map(|(p,_)| format!("{}/", p)).unwrap_or_default();
-                                        self.crumb_stack.clear();
-                                        for seg in folder_path.trim_end_matches('/').split('/').filter(|s| !s.is_empty()) {
-                                            let path_so_far = {
-                                                let mut p = String::new();
-                                                for (label, existing) in &self.crumb_stack { p = existing.clone(); let _ = label; }
-                                                if p.is_empty() { format!("{}/", seg) } else { format!("{}{}/", p, seg) }
-                                            };
-                                            self.crumb_stack.push((url_decode(seg), path_so_far));
-                                        }
-                                        if let Some((_, path)) = self.crumb_stack.last().cloned() {
-                                            self.navigate(path);
-                                        } else {
-                                            self.navigate(String::new());
-                                        }
-                                        self.search_query.clear();
-                                        self.search_open = false;
-                                    }
-                                }
-                            });
-                    });
-                hline(ui);
-            }
 
             // Filter + select all bar
             egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 5.0))
@@ -1919,16 +1871,17 @@ impl App {
                 });
             hline(ui);
 
-            // Apply filter: show folders whose name matches OR all folders when no filter;
-            // show files whose name matches. Non-matching folders are hidden.
-            let entries: Vec<DirEntry> = if self.filter_query.is_empty() {
-                self.entries.clone()
+            // Apply filter: build index list of visible entries — no clone
+            let visible: Vec<usize> = if self.filter_query.is_empty() {
+                (0..self.entries.len()).collect()
             } else {
                 let q = self.filter_query.to_lowercase();
-                self.entries.iter().filter(|e| {
-                    e.name.to_lowercase().contains(&q)
-                }).cloned().collect()
+                self.entries.iter().enumerate()
+                    .filter(|(_, e)| e.name.to_lowercase().contains(&q))
+                    .map(|(i, _)| i)
+                    .collect()
             };
+            let entries = &self.entries; // borrow, no clone
             let row_h   = 26.0;
 
             if self.loading {
@@ -1950,7 +1903,7 @@ impl App {
                     ui.label(mono("Empty directory", 12.0, C_DIM));
                 });
             } else {
-                    let total_rows = entries.len();
+                    let total_rows = visible.len();
                     let mut open_path:        Option<String>             = None;
                     let mut queue_folder_req: Option<(String,String,String)> = None;
                     let mut queue_file_req:   Option<(String,String,u64)>  = None;
@@ -1964,7 +1917,8 @@ impl App {
                         self.pending_scroll_restore = false;
                     }
                     let scroll_out = sa.show_rows(ui, row_h, total_rows, |ui, row_range| {
-                        for entry in &entries[row_range] {
+                        for vis_idx in row_range {
+                            let entry = &entries[visible[vis_idx]];
                             let avail_w = ui.available_width();
                         let is_queued     = entry.url.as_ref()
                             .map(|u| self.queued_urls.contains(u.as_ref()))
@@ -1980,13 +1934,11 @@ impl App {
                         // Check if the click landed on the checkbox area (left 20px)
                         // We do this before drawing so we can suppress the row click below
                         let click_pos = ui.input(|i| i.pointer.interact_pos());
-                        let cb_x = row_rect.min.x + 6.0;
-                        let cb_size = 12.0; // larger hit area than drawn size
-                        let cb_hit_rect = egui::Rect::from_center_size(
-                            egui::pos2(cb_x + cb_size/2.0, row_rect.center().y),
-                            Vec2::splat(cb_size));
-                        let checkbox_clicked = response.clicked()
-                            && click_pos.map(|p| cb_hit_rect.contains(p)).unwrap_or(false);
+                        // Detect click in the left 24px zone — used by folder checkbox
+                        let left_zone_clicked = response.clicked()
+                            && click_pos.map(|p| {
+                                p.x < row_rect.min.x + 24.0
+                            }).unwrap_or(false);
 
                         if hovered {
                             ui.painter().rect_filled(row_rect, 0.0,
@@ -2006,26 +1958,37 @@ impl App {
                         let base_x = row_rect.min.x;
                         let cy     = row_rect.center().y;
 
-                        // Selection checkbox — only for files
-                        let is_selected = entry.url.as_ref()
+                        // Left-side indicator / checkbox
+                        // Folders: a subtle checkbox that blends with the design
+                        // Files: just a dot indicator (no checkbox — selection shown by row highlight)
+                        let _is_selected = entry.url.as_ref()
                             .map(|u| self.selected_urls.contains(u.as_ref()))
                             .unwrap_or(false);
-                        if !entry.is_folder {
-                            let cb_draw_rect = egui::Rect::from_center_size(
-                                egui::pos2(cb_x + 4.0, row_rect.center().y), Vec2::splat(8.0));
-                            if is_selected {
-                                ui.painter().rect_filled(cb_draw_rect, 1.0, C_ACC);
+
+                        if entry.is_folder {
+                            let folder_full_href = format!("{}{}", self.current_path, entry.href);
+                            let is_folder_sel = self.folder_selected.contains(&folder_full_href);
+                            // Small checkbox, left-aligned, colour blends with border palette
+                            let cb_rect = egui::Rect::from_center_size(
+                                egui::pos2(base_x + 10.0, cy), Vec2::splat(12.0));
+                            if is_folder_sel {
+                                ui.painter().rect_filled(cb_rect, 2.0, C_ACC);
+                                ui.painter().text(cb_rect.center(), egui::Align2::CENTER_CENTER,
+                                    "✓", FontId::monospace(9.0), C_BG);
                             } else {
-                                ui.painter().rect_stroke(cb_draw_rect, 1.0, Stroke::new(0.5, C_BORDER2));
+                                // Subtle — matches border colour, only visible on hover
+                                let col = if hovered { C_BORDER2 } else { C_BORDER };
+                                ui.painter().rect_stroke(cb_rect, 2.0, Stroke::new(1.0, col));
                             }
+                        } else {
+                            // File: small filled dot to indicate type — no checkbox
+                            let dot_col = if is_downloaded { C_DOWNLOADED }
+                                else if is_queued { C_ACC }
+                                else { C_BORDER2 };
+                            ui.painter().circle_filled(egui::pos2(base_x + 10.0, cy), 3.0, dot_col);
                         }
 
-                        // Icon — > for folder, ✓ for downloaded, - for file
-                        let icon_str = if entry.is_folder { ">" } else if is_downloaded { "✓" } else { "-" };
-                        let icon_col = if entry.is_folder { C_BLUE } else if is_downloaded { C_DOWNLOADED } else { C_MUTED };
-                        ui.painter().text(
-                            egui::pos2(base_x + 18.0, cy), egui::Align2::CENTER_CENTER,
-                            icon_str, FontId::monospace(11.0), icon_col);
+                        // No folder icon ('>') — folder is indicated by blue text colour alone
 
                         let name_color = if is_queued { C_ACC }
                             else if is_downloaded { C_DOWNLOADED }
@@ -2055,7 +2018,7 @@ impl App {
                             // Lazy cache first, then compiled-in fallback
                             self.folder_sizes.get(&full_key)
                                 .copied()
-                                .or_else(|| generated_sizes::folder_sizes().get(full_key.as_str()).map(|&(b,_)| b))
+                                .or_else(|| generated_dirs::folder_size(&full_key))
                                 .map(fmt_size)
                                 .unwrap_or_else(|| "—".into())
                         } else {
@@ -2072,51 +2035,30 @@ impl App {
                             egui::Align2::RIGHT_CENTER, entry.date.as_ref(),
                             FontId::monospace(10.0), C_DIM);
 
-                        // Folder checkbox — always visible, large, on the right side
-                        // File checkbox is drawn earlier on the left; keep folder checkbox on right
+                        // Folder checkbox interaction — left side 20px zone
                         let mut btn_open_clicked   = false;
                         let mut btn_folder_clicked = false;
                         if entry.is_folder {
-                            let folder_full_href = format!("{}{}", self.current_path, entry.href);
-                            let is_folder_selected = self.folder_selected.contains(&folder_full_href);
-
-                            // Large checkbox on the right edge — 20×20, easy to click
-                            let fcb_size = 20.0;
-                            let fcb_rect = egui::Rect::from_center_size(
-                                egui::pos2(row_rect.max.x - fcb_size/2.0 - 4.0, cy),
-                                Vec2::splat(fcb_size));
-
-                            // Detect click on checkbox area using pointer position
+                            let _folder_full_href = format!("{}{}", self.current_path, entry.href);
+                            let fcb_hit = egui::Rect::from_min_size(
+                                row_rect.min, Vec2::new(24.0, row_rect.height()));
                             let fcb_clicked = response.clicked()
-                                && click_pos.map(|p| fcb_rect.expand(4.0).contains(p)).unwrap_or(false);
-
-                            // Draw the checkbox
-                            if is_folder_selected {
-                                ui.painter().rect_filled(fcb_rect, 3.0, C_ACC);
-                                ui.painter().text(fcb_rect.center(), egui::Align2::CENTER_CENTER,
-                                    "✓", FontId::monospace(12.0), C_BG);
-                            } else {
-                                ui.painter().rect_filled(fcb_rect, 3.0, Color32::from_rgba_premultiplied(255,255,255,8));
-                                ui.painter().rect_stroke(fcb_rect, 3.0, Stroke::new(1.0, C_BORDER2));
-                                if hovered {
-                                    ui.painter().text(fcb_rect.center(), egui::Align2::CENTER_CENTER,
-                                        "+", FontId::monospace(14.0), C_MUTED);
-                                }
-                            }
+                                && click_pos.map(|p| fcb_hit.contains(p)).unwrap_or(false);
                             if fcb_clicked { btn_folder_clicked = true; }
 
-                            // Hover "-> open" button — pushed left of the checkbox
+                            // "-> open" hover button
                             let btn_h  = 18.0;
                             let open_w = 52.0;
                             let open_rect = egui::Rect::from_min_size(
-                                egui::pos2(fcb_rect.min.x - open_w - 6.0, cy - btn_h/2.0),
+                                egui::pos2(row_rect.max.x - open_w - 8.0, cy - btn_h/2.0),
                                 Vec2::new(open_w, btn_h));
                             let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
                             if hovered {
                                 ui.painter().rect_filled(open_rect, 2.0, C_SURF2);
                                 ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, C_BORDER2));
-                                ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER, "-> open",
-                                    FontId::monospace(9.0), if open_resp.hovered() {C_TEXT} else {C_MUTED});
+                                ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER,
+                                    "-> open", FontId::monospace(9.0),
+                                    if open_resp.hovered() { C_TEXT } else { C_MUTED });
                             }
                             btn_open_clicked = open_resp.clicked();
                         }
@@ -2126,22 +2068,7 @@ impl App {
                             let url  = format!("{}{}{}", BASE_URL, self.current_path, entry.href);
                             let href = format!("{}{}", self.current_path, entry.href);
                             queue_folder_req = Some((url, href, entry.name.to_string()));
-                        } else if checkbox_clicked && !entry.is_folder {
-                            // Checkbox click — toggle file selection
-                            if let Some(ref url) = entry.url {
-                                if !is_queued && !is_downloaded {
-                                    if self.selected_urls.contains(url.as_ref()) {
-                                        self.selected_urls.remove(url.as_ref());
-                                    } else {
-                                        self.selected_urls.insert(url.to_string());
-                                    }
-                                }
-                            }
-                        } else if btn_open_clicked || (response.clicked() && entry.is_folder && !checkbox_clicked
-                            && click_pos.map(|p| {
-                                let fcb_right = row_rect.max.x - 4.0;
-                                p.x < fcb_right - 28.0
-                            }).unwrap_or(true)) {
+                        } else if btn_open_clicked || (response.clicked() && entry.is_folder && !left_zone_clicked) {
                             let new_path = format!("{}{}", self.current_path, entry.href);
                             open_path = Some(new_path.clone());
                             self.crumb_stack.push((entry.name.to_string(), new_path));
@@ -2152,8 +2079,8 @@ impl App {
                                     self.selected_urls.remove(url.as_ref());
                                 }
                             }
-                        } else if response.clicked() && !entry.is_folder && !checkbox_clicked {
-                            // Row click (not on checkbox) — toggle selection
+                        } else if response.clicked() && !entry.is_folder {
+                            // Row click — toggle file selection
                             if let Some(ref url) = entry.url {
                                 if !is_queued && !is_downloaded {
                                     if self.selected_urls.contains(url.as_ref()) {
@@ -2183,6 +2110,127 @@ impl App {
                     }
             } // end else
         });
+    }
+
+    // ── Search tab ────────────────────────────────────────────────────────────
+    fn draw_search_tab(&mut self, ui: &mut egui::Ui) {
+        let avail_w = ui.available_width();
+
+        // Search input + filter controls
+        egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 6.0))
+            .show(ui, |ui: &mut egui::Ui| {
+                ui.vertical(|ui: &mut egui::Ui| {
+                    // Main search bar
+                    ui.horizontal(|ui: &mut egui::Ui| {
+                        ui.label(mono("⌕", 13.0, C_MUTED));
+                        ui.add_space(4.0);
+                        let resp = ui.add(
+                            egui::TextEdit::singleline(&mut self.search_query)
+                                .font(FontId::monospace(12.0))
+                                .desired_width(ui.available_width() - 30.0)
+                                .hint_text("search all files…")
+                                .text_color(C_TEXT)
+                        );
+                        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                            self.search_query.clear();
+                        }
+                        if !self.search_query.is_empty() {
+                            if ui.add(egui::Button::new(mono("✕", 10.0, C_MUTED)).frame(false)).clicked() {
+                                self.search_query.clear();
+                            }
+                        }
+                        let _ = resp;
+                    });
+                    ui.add_space(4.0);
+                    // Directory filters
+                    ui.horizontal(|ui: &mut egui::Ui| {
+                        ui.label(mono("only:", 9.0, C_DIM));
+                        ui.add_space(2.0);
+                        ui.add(egui::TextEdit::singleline(&mut self.search_include)
+                            .font(FontId::monospace(9.5))
+                            .desired_width(120.0)
+                            .hint_text("e.g. No-Intro")
+                            .text_color(C_TEXT));
+                        ui.add_space(8.0);
+                        ui.label(mono("exclude:", 9.0, C_DIM));
+                        ui.add_space(2.0);
+                        ui.add(egui::TextEdit::singleline(&mut self.search_exclude)
+                            .font(FontId::monospace(9.5))
+                            .desired_width(120.0)
+                            .hint_text("e.g. BIOS")
+                            .text_color(C_TEXT));
+                    });
+                });
+            });
+        hline(ui);
+
+        if self.search_query.is_empty() {
+            ui.add_space(20.0);
+            ui.horizontal(|ui: &mut egui::Ui| {
+                ui.add_space(14.0);
+                ui.label(mono("Type to search across all baked-in folders", 11.0, C_DIM));
+            });
+            return;
+        }
+
+        let q        = self.search_query.to_lowercase();
+        let inc      = self.search_include.to_lowercase();
+        let exc      = self.search_exclude.to_lowercase();
+
+        let results: Vec<(String, String, String, u64)> = generated_dirs::search(&q)
+            .filter(|e| inc.is_empty() || e.folder.to_lowercase().contains(&inc))
+            .filter(|e| exc.is_empty() || !e.folder.to_lowercase().contains(&exc))
+            .take(500)
+            .map(|e| (e.name.clone(), e.folder.to_string(), format!("{}/{}", e.folder, e.name), e.size_bytes))
+            .collect();
+
+        let n = results.len();
+        egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
+            .show(ui, |ui: &mut egui::Ui| {
+                ui.label(mono(
+                    if n >= 500 { "500+ matches (refine your search)".to_string() }
+                    else { format!("{} match{}", n, if n==1{""} else {"es"}) },
+                    9.0, C_MUTED));
+            });
+        hline(ui);
+
+        let row_h = 30.0;
+        egui::ScrollArea::vertical().id_source("search_tab_results").auto_shrink([false;2])
+            .show_rows(ui, row_h, results.len(), |ui, range| {
+                for (name, folder, full_path, size) in &results[range] {
+                    let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
+                    if resp.hovered() {
+                        ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
+                    }
+                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
+                    let cx = row.min.x + 10.0;
+                    let top_y = row.min.y + 8.0;
+                    let bot_y = row.min.y + 22.0;
+                    // File name on top line
+                    ui.painter().text(egui::pos2(cx, top_y), egui::Align2::LEFT_TOP,
+                        name, FontId::monospace(11.0), C_FILE);
+                    // Folder path on bottom line, muted
+                    ui.painter().text(egui::pos2(cx, bot_y), egui::Align2::LEFT_TOP,
+                        folder, FontId::monospace(9.0), C_MUTED);
+                    // Size right-aligned
+                    if *size > 0 {
+                        ui.painter().text(egui::pos2(row.max.x - 8.0, top_y), egui::Align2::RIGHT_TOP,
+                            fmt_size(*size), FontId::monospace(9.0), C_MUTED);
+                    }
+                    if resp.clicked() {
+                        let folder_path = full_path.rsplit_once('/').map(|(p,_)| format!("{}/", p)).unwrap_or_default();
+                        self.crumb_stack.clear();
+                        let mut path = String::new();
+                        for seg in folder_path.trim_end_matches('/').split('/').filter(|s| !s.is_empty()) {
+                            path = format!("{}{}/", path, seg);
+                            self.crumb_stack.push((url_decode(seg), path.clone()));
+                        }
+                        let nav_path = self.crumb_stack.last().map(|(_,p)| p.clone()).unwrap_or_default();
+                        self.browser_tab = BrowserTab::Browse;
+                        self.navigate(nav_path);
+                    }
+                }
+            });
     }
 
     // ── Queue pane ────────────────────────────────────────────────────────────

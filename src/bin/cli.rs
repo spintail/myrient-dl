@@ -17,7 +17,7 @@
 
 #[path = "../generated_dirs.rs"]
 mod generated_dirs;
-///   Q          quit
+//   Q          quit
 
 use crossterm::{
     event::{self, Event, KeyCode, KeyModifiers},
@@ -287,6 +287,8 @@ struct App {
     selected_urls:  HashSet<String>,
     downloaded:     HashSet<String>,
     queued_urls:    HashSet<String>,
+    filter_query:   String,
+    filtering:      bool,   // filter input active
     // Queue
     queue_state:    ListState,
     queue_sel:      HashSet<String>,
@@ -298,8 +300,6 @@ struct App {
     // UI
     active_pane:    Pane,
     status_msg:     String,
-    // last_tick: Instant,  // reserved
-    // Async browse results
     browse_rx:      std::sync::mpsc::Receiver<(String, Result<Vec<DirEntry>, String>)>,
     browse_tx_clone: std::sync::mpsc::SyncSender<(String, Result<Vec<DirEntry>, String>)>,
 }
@@ -317,11 +317,11 @@ impl App {
             loading: false, load_error: None,
             browser_state: ListState::default(), selected_urls: HashSet::new(),
             downloaded: load_downloaded(), queued_urls,
+            filter_query: String::new(), filtering: false,
             queue_state: ListState::default(), queue_sel: HashSet::new(),
             search_query: String::new(), searching: false,
             search_results: vec![], search_state: ListState::default(),
             active_pane: Pane::Browser, status_msg: "Ready".into(),
-            // last_tick: Instant::now(),
             browse_rx: brx, browse_tx_clone: btx,
         }
     }
@@ -552,8 +552,14 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     f.render_widget(browser_block, main[0]);
 
     // Breadcrumbs + search
+    let filter_line_h = if app.filtering || !app.filter_query.is_empty() { 1u16 } else { 0 };
     let browser_layout = Layout::default().direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(if app.searching {1} else {0}), Constraint::Min(0)]).split(inner_browser);
+        .constraints([
+            Constraint::Length(1),                               // breadcrumbs
+            Constraint::Length(if app.searching { 1 } else { 0 }), // search bar
+            Constraint::Length(filter_line_h),                   // filter bar
+            Constraint::Min(0),                                  // entries
+        ]).split(inner_browser);
 
     // Breadcrumb line
     let crumb_str = if app.crumb_stack.is_empty() { "/files/".to_string() }
@@ -566,11 +572,19 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
         f.render_widget(Paragraph::new(search_bar).style(Style::default().fg(green)), browser_layout[1]);
     }
 
-    // Entry list or search results
+    // Filter bar
+    if filter_line_h > 0 {
+        let filter_bar = format!("filter: {}{}", app.filter_query, if app.filtering { "_" } else { "" });
+        let col = if app.filter_query.is_empty() { muted } else { green };
+        f.render_widget(Paragraph::new(filter_bar).style(Style::default().fg(col)), browser_layout[2]);
+    }
+
+    // Entry list or search results — apply filter
+    let list_area = browser_layout[3];
     if app.loading {
-        f.render_widget(Paragraph::new("  fetching…").style(Style::default().fg(muted)), browser_layout[2]);
+        f.render_widget(Paragraph::new("  fetching…").style(Style::default().fg(muted)), list_area);
     } else if let Some(ref e) = app.load_error.clone() {
-        f.render_widget(Paragraph::new(format!("  error: {}", e)).style(Style::default().fg(err)), browser_layout[2]);
+        f.render_widget(Paragraph::new(format!("  error: {}", e)).style(Style::default().fg(err)), list_area);
     } else if app.searching {
         let items: Vec<ListItem> = app.search_results.iter().enumerate().map(|(i, (name, href))| {
             let sel = app.search_state.selected() == Some(i);
@@ -582,12 +596,16 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             ListItem::new(line).style(if sel { Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)) } else { Style::default() })
         }).collect();
         let list = List::new(items).highlight_style(Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)));
-        f.render_stateful_widget(list, browser_layout[2], &mut app.search_state);
+        f.render_stateful_widget(list, list_area, &mut app.search_state);
     } else {
-        let items: Vec<ListItem> = app.entries.iter().map(|e| {
-            let is_sel      = e.url.as_ref().map(|u| app.selected_urls.contains(u)).unwrap_or(false);
-            let is_queued   = e.url.as_ref().map(|u| app.queued_urls.contains(u)).unwrap_or(false);
-            let is_dl       = e.url.as_ref().map(|u| app.downloaded.contains(u)).unwrap_or(false);
+        let fq = app.filter_query.to_lowercase();
+        let filtered: Vec<&DirEntry> = app.entries.iter()
+            .filter(|e| fq.is_empty() || e.name.to_lowercase().contains(&fq))
+            .collect();
+        let items: Vec<ListItem> = filtered.iter().map(|e| {
+            let is_sel    = e.url.as_ref().map(|u| app.selected_urls.contains(u)).unwrap_or(false);
+            let is_queued = e.url.as_ref().map(|u| app.queued_urls.contains(u)).unwrap_or(false);
+            let is_dl     = e.url.as_ref().map(|u| app.downloaded.contains(u)).unwrap_or(false);
             let icon = if e.is_folder { "▶" } else if is_dl { "✓" } else { "·" };
             let icon_style = if e.is_folder { Style::default().fg(blue) } else if is_dl { Style::default().fg(green) } else { Style::default().fg(muted) };
             let name_style = if is_queued { Style::default().fg(green) } else if is_dl { Style::default().fg(Color::Rgb(0x2a,0x50,0x3a)) } else if e.is_folder { Style::default().fg(blue) } else if is_sel { Style::default().fg(green).add_modifier(Modifier::BOLD) } else { Style::default().fg(file_c) };
@@ -600,7 +618,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             ]))
         }).collect();
         let list = List::new(items).highlight_style(Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)));
-        f.render_stateful_widget(list, browser_layout[2], &mut app.browser_state);
+        f.render_stateful_widget(list, list_area, &mut app.browser_state);
     }
 
     // ── Queue panel ──
@@ -663,8 +681,14 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     }
 
     // Status bar
-    let keys = " ↑↓ navigate  Enter open/queue  Space select  a all  q queue sel  Tab switch  s start/pause  x remove  / search  Q quit";
-    let status = format!(" {}  │{}", app.status_msg, keys);
+    let keys = if app.filtering {
+        " Type to filter  Esc clear  ↑↓ navigate"
+    } else if app.searching {
+        " Type to search  Esc clear  ↑↓ navigate  Enter go to folder"
+    } else {
+        " ↑↓/jk nav  Enter open  Space sel  a all  q queue  f filter  / search  Tab switch  s start  x remove  Q quit"
+    };
+    let status = format!(" {}  │  {}", app.status_msg, keys);
     f.render_widget(Paragraph::new(status).style(Style::default().fg(dim)), outer[2]);
 }
 
@@ -673,8 +697,9 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
 fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
     let mut app = App::new();
     app.navigate(String::new());
+    generated_dirs::warm_search_index();
 
-    loop {
+    'main: loop {
         app.poll_browse();
 
         // Auto-kick downloads
@@ -682,9 +707,31 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
 
         terminal.draw(|f| draw(f, &mut app))?;
 
-        if !event::poll(Duration::from_millis(100))? { continue; }
+        // Process at most N key events per frame to prevent scroll spam lockup.
+        // Any excess events are discarded — the UI stays responsive.
+        const MAX_EVENTS_PER_FRAME: usize = 4;
 
-        if let Event::Key(key) = event::read()? {
+        if !event::poll(Duration::from_millis(16))? { continue; }
+
+        let mut processed = 0;
+        while processed < MAX_EVENTS_PER_FRAME && event::poll(Duration::from_millis(0))? {
+            if let Ok(Event::Key(key)) = event::read() {
+                processed += 1;
+
+            // Filter mode captures typing
+            if app.filtering {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Enter => {
+                        app.filtering = false;
+                        if key.code == KeyCode::Esc { app.filter_query.clear(); }
+                    }
+                    KeyCode::Backspace => { app.filter_query.pop(); app.browser_state.select(Some(0)); }
+                    KeyCode::Char(c) => { app.filter_query.push(c); app.browser_state.select(Some(0)); }
+                    _ => {}
+                }
+                continue;
+            }
+
             // Search mode captures most keys
             if app.searching {
                 match key.code {
@@ -704,12 +751,12 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 KeyCode::Char('Q') | KeyCode::Char('q') if key.modifiers.contains(KeyModifiers::SHIFT) => {
                     save_queue(&app.shared.lock().unwrap().queue);
                     let _ = app.dl_tx.send(DlCmd::Shutdown);
-                    break;
+                    break 'main;
                 }
                 KeyCode::Char('Q') if !key.modifiers.contains(KeyModifiers::SHIFT) => {
                     save_queue(&app.shared.lock().unwrap().queue);
                     let _ = app.dl_tx.send(DlCmd::Shutdown);
-                    break;
+                    break 'main;
                 }
 
                 // Navigation
@@ -744,6 +791,19 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 // Search
                 KeyCode::Char('/') => { app.searching = true; app.search_query.clear(); }
 
+                // Filter
+                KeyCode::Char('f') => {
+                    if app.active_pane == Pane::Browser {
+                        app.filtering = true;
+                        app.filter_query.clear();
+                        app.browser_state.select(Some(0));
+                    }
+                }
+                KeyCode::Esc => {
+                    // Clear filter if active
+                    if !app.filter_query.is_empty() { app.filter_query.clear(); }
+                }
+
                 // Queue start/pause
                 KeyCode::Char('s') => {
                     app.settings.queue_paused = !app.settings.queue_paused;
@@ -754,7 +814,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
 
                 _ => {}
             }
-        }
+            } // end Event::Key match
+        } // end while processed < MAX_EVENTS_PER_FRAME
+        // Discard any remaining events in the queue this frame
+        while event::poll(Duration::from_millis(0))? { let _ = event::read(); }
     }
     Ok(())
 }

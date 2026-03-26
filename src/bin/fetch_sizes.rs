@@ -19,9 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const BASE_URL:    &str = "https://myrient.erista.me/files/";
-const SIZES_PATH:  &str = "src/generated_sizes";
 const DIRS_BIN:    &str = "src/generated_dirs.bin";
-const SEARCH_BIN:  &str = "src/generated_search.bin";
 const CACHE_PATH:  &str = "fetch_sizes_cache.json";
 const MAX_RETRIES: u32  = 3;
 
@@ -88,7 +86,6 @@ fn main() {
             paths.sort();
             write_dirs(&cache.dirs, &paths);
             println!("Wrote {} folder listings to {} (from cache)", paths.len(), DIRS_BIN);
-            println!("Skipped size recalculation — generated_sizes unchanged.");
             return;
         }
 
@@ -129,7 +126,6 @@ fn main() {
         paths.sort();
         write_dirs(&cache.dirs, &paths);
         println!("\nWrote {} folder listings to {}", paths.len(), DIRS_BIN);
-        println!("Skipped size recalculation — generated_sizes unchanged.");
         return;
     }
 
@@ -196,10 +192,8 @@ fn main() {
     let mut paths: Vec<&String> = cache.dirs.keys().collect();
     paths.sort();
 
-    write_sizes(&cache.dirs, &paths);
     write_dirs(&cache.dirs, &paths);
-
-    println!("\nWrote {} folder entries to {} and {}", paths.len(), SIZES_PATH, DIRS_BIN);
+    println!("\nWrote {} folder entries to {}", paths.len(), DIRS_BIN);
     println!("Delete {} to re-crawl from scratch, or use --refresh to update changed folders.", cache_path().display());
 }
 
@@ -311,171 +305,233 @@ fn entry_to_cached(e: &RawEntry) -> CachedEntry {
 
 // ── Code generation ───────────────────────────────────────────────────────────
 
-fn write_sizes(dirs: &HashMap<String, CachedDir>, paths: &[&String]) {
-    const CHUNK: usize = 500;
-    let all_entries: Vec<(&str, u64, &str)> = paths.iter()
-        .filter(|p| dirs[p.as_str()].total_bytes > 0)
-        .map(|p| {
-            let d = &dirs[p.as_str()];
-            let date = d.entries.first().map(|e| e.date.as_str()).unwrap_or("");
-            (p.as_str(), d.total_bytes, date)
-        })
-        .collect();
+fn parse_existing_index(data: &[u8]) -> Option<HashMap<String, (usize, usize)>> {
+    if data.len() < 4 { return None; }
+    let num = u32::from_le_bytes(data[0..4].try_into().ok()?) as usize;
 
-    let chunks: Vec<_> = all_entries.chunks(CHUNK).collect();
-    let dir = project_path(SIZES_PATH);
-    std::fs::create_dir_all(&dir).expect("create generated_sizes dir");
-
-    // Remove any stale chunk files from previous runs with different chunk counts
-    if let Ok(read) = std::fs::read_dir(&dir) {
-        for entry in read.flatten() {
-            let name = entry.file_name();
-            let s = name.to_string_lossy();
-            if s.starts_with("chunk_") && s.ends_with(".rs") {
-                let _ = std::fs::remove_file(entry.path());
+    // Try both index formats:
+    //   Old: [u16 path_len][path][u32 offset][u32 clen]                     (8 bytes after path)
+    //   New: [u16 path_len][path][u32 offset][u32 clen][u64 total_bytes]    (16 bytes after path)
+    // Detect by attempting to parse with each stride and checking the first block is valid zstd.
+    for stride in [8usize, 16usize] {
+        if let Some(map) = try_parse_index(data, num, stride) {
+            // Validate: check first entry's block starts with a valid zstd magic
+            if let Some(&(offset, clen)) = map.values().next() {
+                if let Some(block) = data.get(offset..offset+clen) {
+                    // zstd magic: 0xFD2FB528 (little-endian: 28 B5 2F FD)
+                    if block.starts_with(&[0x28, 0xB5, 0x2F, 0xFD]) {
+                        return Some(map);
+                    }
+                }
             }
         }
     }
+    None
+}
 
-    // Write one file per chunk
-    for (i, chunk) in chunks.iter().enumerate() {
-        let mut out = format!("// Auto-generated chunk {:03} — do not edit.\n\n", i);
-        out += "use std::collections::HashMap;\n\n";
-        out += &format!("pub fn fill_{:03}(m: &mut HashMap<&'static str, (u64, &'static str)>) {{\n", i);
-        for (path, bytes, date) in chunk.iter() {
-            out += &format!("        m.insert({}, ({}, {}));\n",
-                rust_str(path), bytes, rust_str(date));
-        }
-        out += "}\n";
-        std::fs::write(dir.join(format!("chunk_{:03}.rs", i)), out)
-            .expect("write chunk");
+fn try_parse_index(data: &[u8], num: usize, stride: usize) -> Option<HashMap<String, (usize, usize)>> {
+    let mut map = HashMap::with_capacity(num);
+    let mut pos = 4usize;
+    for _ in 0..num {
+        if pos + 2 > data.len() { break; }
+        let path_len = u16::from_le_bytes(data[pos..pos+2].try_into().ok()?) as usize;
+        pos += 2;
+        if pos + path_len + stride > data.len() { break; }
+        let path = std::str::from_utf8(&data[pos..pos+path_len]).ok()?.to_string();
+        pos += path_len;
+        let offset = u32::from_le_bytes(data[pos..pos+4].try_into().ok()?) as usize; pos += 4;
+        let clen   = u32::from_le_bytes(data[pos..pos+4].try_into().ok()?) as usize; pos += 4;
+        if stride == 16 { pos += 8; }
+        map.insert(path, (offset, clen));
     }
-
-    // Write mod.rs
-    let mut mod_out = String::from("// Auto-generated — do not edit.\n\n");
-    for i in 0..chunks.len() { mod_out += &format!("mod chunk_{:03};\n", i); }
-    mod_out += "\nuse std::collections::HashMap;\nuse std::sync::OnceLock;\n\n";
-    mod_out += "pub static FOLDER_SIZES: OnceLock<HashMap<&'static str, (u64, &'static str)>> = OnceLock::new();\n\n";
-    mod_out += "pub fn folder_sizes() -> &'static HashMap<&'static str, (u64, &'static str)> {\n";
-    mod_out += "    FOLDER_SIZES.get_or_init(|| {\n        let mut m = HashMap::new();\n";
-    for i in 0..chunks.len() {
-        mod_out += &format!("        chunk_{:03}::fill_{:03}(&mut m);\n", i, i);
-    }
-    mod_out += "        m\n    })\n}\n";
-    std::fs::write(dir.join("mod.rs"), mod_out).expect("write mod.rs");
-
-    println!("Wrote {} entries across {} chunk files to {}/", all_entries.len(), chunks.len(), SIZES_PATH);
+    Some(map)
 }
 
 fn write_dirs(dirs: &HashMap<String, CachedDir>, paths: &[&String]) {
-    // Binary format:
-    //   [u32le: num_folders]
-    //   [index entries: (u16le path_len)(path bytes)(u32le block_offset)(u32le block_clen)]
-    //   [zstd-compressed blocks, one per folder]
+    // Compact binary format: see parse_index() in generated_dirs.rs for layout.
     //
-    // Each block decompresses to:
-    //   [u16le: num_entries] × [(u8 flags)(u8 name_len)(name)(u8 href_len)(href)
-    //                           (u8 size_len)(size)(u8 date_len)(date)]
-    //
-    // Blocks are compressed at zstd level 19 (max) for minimal binary size.
-    // At runtime only the requested folder's block is decompressed — O(1) RAM.
+    // Incremental update: read existing generated_dirs.bin if present.
+    // For each folder, check if the entry count matches what's in the cache.
+    // If yes, copy the compressed block directly — no recompression needed.
+    // Only compress blocks that are new or changed.
+
+    // Load existing bin for incremental reuse
+    let existing: Option<Vec<u8>> = std::fs::read(project_path(DIRS_BIN)).ok();
+    let existing_index: HashMap<String, (usize, usize)> = existing.as_ref()
+        .and_then(|data| parse_existing_index(data))
+        .unwrap_or_default();
+    let reused = std::sync::atomic::AtomicUsize::new(0);
 
     let mut index_buf: Vec<u8> = Vec::new();
     let mut blocks_buf: Vec<u8> = Vec::new();
-
-    // Write num_folders
     index_buf.extend_from_slice(&(paths.len() as u32).to_le_bytes());
 
     let mut total_entries = 0usize;
     let mut total_raw = 0usize;
 
+    // Encode each folder's entries into raw binary (sequential — fast)
+    // then compress all blocks in parallel at level 19 (CPU-bound, benefits from parallelism)
+    struct FolderBlock<'a> {
+        path:        &'a str,
+        total_bytes: u64,
+        raw:         Vec<u8>,
+        #[allow(dead_code)] num_entries: usize,
+        // If Some, this block can be copied from the existing file unchanged
+        existing_block: Option<Vec<u8>>,
+    }
+
+    let mut folder_blocks: Vec<FolderBlock> = Vec::with_capacity(paths.len());
+    let mut sizes_found = 0usize;
+    let mut sizes_zero  = 0usize;
+
     for path in paths {
         let d = &dirs[*path];
-        let path_bytes = path.as_bytes();
+        if d.total_bytes > 0 { sizes_found += 1; } else { sizes_zero += 1; }
 
-        // Encode entries into compact binary
+        let num = d.entries.len().min(65535) as u16;
+        total_entries += num as usize;
+
+        // Check if existing block has the same entry count — if so, reuse it
+        let existing_block = existing_index.get(path.as_str())
+            .and_then(|&(offset, clen)| {
+                let data = existing.as_ref()?;
+                let block_bytes = data.get(offset..offset+clen)?;
+                // Peek at the decompressed entry count (first 2 bytes of block)
+                let decompressed = zstd::decode_all(block_bytes).ok()?;
+                if decompressed.len() >= 2 {
+                    let existing_num = u16::from_le_bytes(decompressed[0..2].try_into().ok()?);
+                    if existing_num == num { Some(block_bytes.to_vec()) } else { None }
+                } else { None }
+            });
+
+        if existing_block.is_some() {
+            reused.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            folder_blocks.push(FolderBlock { path: path.as_str(), total_bytes: d.total_bytes, raw: vec![], num_entries: num as usize, existing_block });
+            continue;
+        }
+
         let mut block_raw: Vec<u8> = Vec::new();
-        let num = d.entries.len().min(65535);
-        block_raw.extend_from_slice(&(num as u16).to_le_bytes());
-        for e in d.entries.iter().take(num) {
+        block_raw.extend_from_slice(&num.to_le_bytes());
+
+        for e in d.entries.iter().take(num as usize) {
             let flags: u8 = if e.is_folder { 1 } else { 0 };
             block_raw.push(flags);
-            write_str_field(&mut block_raw, &e.name);
             write_str_field(&mut block_raw, &e.href);
-            write_str_field(&mut block_raw, &e.size);
-            write_str_field(&mut block_raw, &e.date);
+            if !e.is_folder {
+                let sz = parse_size(&e.size);
+                block_raw.push(((sz >> 32) & 0xff) as u8);
+                block_raw.extend_from_slice(&((sz & 0xffffffff) as u32).to_le_bytes());
+            }
+            let (dy, dm, dd) = parse_date_compact(&e.date);
+            block_raw.push(dy);
+            block_raw.push((dm << 4) | (dd & 0x0f));
         }
         total_raw += block_raw.len();
-        total_entries += num;
+        folder_blocks.push(FolderBlock { path: path.as_str(), total_bytes: d.total_bytes, raw: block_raw, num_entries: num as usize, existing_block: None });
+    }
 
-        // Compress block at level 19 (max compression for smallest binary)
-        let compressed_block = zstd::encode_all(block_raw.as_slice(), 19)
-            .expect("zstd compress block");
+    let total_to_compress = folder_blocks.iter().filter(|fb| fb.existing_block.is_none()).count();
 
+    if total_to_compress > 0 {
+        println!("Compressing {} blocks at zstd level 19 (parallel)…", total_to_compress);
+    }
+
+    // Dedicated progress reporter thread — receives completion signals and prints
+    // in order, so output is never interleaved from racing threads.
+    let (prog_tx, prog_rx) = std::sync::mpsc::sync_channel::<()>(256);
+    let reporter = if total_to_compress > 0 {
+        let total = total_to_compress;
+        Some(std::thread::spawn(move || {
+            let mut done = 0usize;
+            let interval = (total / 20).max(1); // ~5% increments
+            for () in prog_rx {
+                done += 1;
+                if done % interval == 0 || done == total {
+                    println!("  [{}/{}]  {:.0}%", done, total, done as f64 / total as f64 * 100.0);
+                }
+            }
+        }))
+    } else { None };
+
+    // Compress only new/changed blocks in parallel at level 19
+    let compressed_blocks: Vec<Vec<u8>> = folder_blocks.par_iter()
+        .map(|fb| {
+            if let Some(ref existing) = fb.existing_block {
+                existing.clone()
+            } else {
+                let result = zstd::encode_all(fb.raw.as_slice(), 19).expect("zstd compress");
+                let _ = prog_tx.send(());
+                result
+            }
+        })
+        .collect();
+
+    // Drop the sender so the reporter thread exits cleanly
+    drop(prog_tx);
+    if let Some(h) = reporter { let _ = h.join(); }
+
+    let n_reused = reused.load(std::sync::atomic::Ordering::Relaxed);
+    let n_compressed = folder_blocks.len() - n_reused;
+    println!("  {} blocks reused, {} compressed fresh", n_reused, n_compressed);
+
+    // Assemble index and block data in order
+    for (fb, compressed) in folder_blocks.iter().zip(compressed_blocks.iter()) {
+        let path_bytes = fb.path.as_bytes();
         let offset = blocks_buf.len() as u32;
-        let clen   = compressed_block.len() as u32;
-        blocks_buf.extend_from_slice(&compressed_block);
+        let clen   = compressed.len() as u32;
+        blocks_buf.extend_from_slice(compressed);
 
-        // Write index entry
         index_buf.extend_from_slice(&(path_bytes.len() as u16).to_le_bytes());
         index_buf.extend_from_slice(path_bytes);
         index_buf.extend_from_slice(&offset.to_le_bytes());
         index_buf.extend_from_slice(&clen.to_le_bytes());
+        index_buf.extend_from_slice(&fb.total_bytes.to_le_bytes());
     }
 
-    // Prepend index before blocks — adjust offsets to skip past index
+    // Patch offsets to absolute (past index)
     let index_size = index_buf.len();
-    // Rewrite offsets in index to be absolute (index_size + block_offset)
-    // Index structure after the initial u32: entries of (u16 path_len)(path)(u32 offset)(u32 clen)
-    let mut pos = 4usize; // skip num_folders
+    let mut pos = 4usize;
     while pos < index_size {
         let path_len = u16::from_le_bytes(index_buf[pos..pos+2].try_into().unwrap()) as usize;
         pos += 2 + path_len;
-        // patch offset
         let raw_offset = u32::from_le_bytes(index_buf[pos..pos+4].try_into().unwrap()) as usize;
         let abs_offset = (index_size + raw_offset) as u32;
         index_buf[pos..pos+4].copy_from_slice(&abs_offset.to_le_bytes());
-        pos += 8; // offset + clen
+        pos += 8 + 8; // offset(4) + clen(4) + total_bytes(8)
     }
 
     let mut out = index_buf;
     out.extend_from_slice(&blocks_buf);
-
     std::fs::write(project_path(DIRS_BIN), &out).expect("write generated_dirs.bin");
-    println!("Wrote {} entries in {} folders → {:.1} KB (raw {:.1} KB, ratio {:.1}x) to {}",
-        total_entries, paths.len(),
-        out.len() as f64 / 1024.0,
-        total_raw as f64 / 1024.0,
-        total_raw as f64 / out.len() as f64,
-        DIRS_BIN);
+    let ratio_str = if total_raw > 0 {
+        format!("raw {:.1} KB, ratio {:.1}x", total_raw as f64/1024.0, total_raw as f64/out.len() as f64)
+    } else {
+        format!("all blocks reused from existing file")
+    };
+    println!("Wrote {} entries in {} folders → {:.1} KB ({})",
+        total_entries, paths.len(), out.len() as f64/1024.0, ratio_str);
+    println!("  Folder sizes: {} with data, {} unknown (run full crawl to populate)",
+        sizes_found, sizes_zero);
+    println!("  → {}", DIRS_BIN);
+}
 
-    // Build search index: compact list of (file_name_lowercase \0 folder_path \0 display_name \0 size \n)
-    // Stored as a single zstd block in a separate file — decompressed once on first search.
-    let mut search_raw: Vec<u8> = Vec::new();
-    for path in paths {
-        let d = &dirs[*path];
-        let folder = path.as_str();
-        for e in &d.entries {
-            if e.is_folder { continue; }
-            let name_lc = e.name.to_lowercase();
-            // Format: name_lc NUL folder NUL display_name NUL size NUL
-            search_raw.extend_from_slice(name_lc.as_bytes());
-            search_raw.push(0);
-            search_raw.extend_from_slice(folder.as_bytes());
-            search_raw.push(0);
-            search_raw.extend_from_slice(e.name.as_bytes());
-            search_raw.push(0);
-            search_raw.extend_from_slice(e.size.as_bytes());
-            search_raw.push(0);
+/// Pack date string "2023-10-15 14:23" → (year-2000, month, day)
+fn parse_date_compact(date: &str) -> (u8, u8, u8) {
+    let b = date.as_bytes();
+    let year  = parse_digits(b, 0, 4).saturating_sub(2000).min(255) as u8;
+    let month = parse_digits(b, 5, 2).min(12) as u8;
+    let day   = parse_digits(b, 8, 2).min(31) as u8;
+    (year, month, day)
+}
+
+fn parse_digits(b: &[u8], offset: usize, len: usize) -> u32 {
+    let mut n = 0u32;
+    for i in 0..len {
+        if let Some(&c) = b.get(offset + i) {
+            if c >= b'0' && c <= b'9' { n = n * 10 + (c - b'0') as u32; }
         }
     }
-    let search_compressed = zstd::encode_all(search_raw.as_slice(), 19)
-        .expect("zstd compress search");
-    std::fs::write(project_path(SEARCH_BIN), &search_compressed).expect("write generated_search.bin");
-    println!("Search index → {:.1} KB compressed (from {:.1} KB) to {}",
-        search_compressed.len() as f64 / 1024.0,
-        search_raw.len() as f64 / 1024.0,
-        SEARCH_BIN);
+    n
 }
 
 fn write_str_field(buf: &mut Vec<u8>, s: &str) {
@@ -507,10 +563,6 @@ fn cache_path() -> std::path::PathBuf {
         if candidate.exists() { return candidate; }
     }
     p
-}
-
-fn rust_str(s: &str) -> String {
-    format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
