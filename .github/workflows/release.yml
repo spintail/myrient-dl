@@ -167,8 +167,9 @@ jobs:
           </plist>
           PLIST
 
-          # Remove quarantine attribute
+          # Remove quarantine attribute and zip the bundle
           xattr -cr "$APP"
+          cd dist && zip -r myrient-dl.app.zip myrient-dl.app && cd ..
 
       - uses: actions/upload-artifact@v4
         with:
@@ -176,7 +177,7 @@ jobs:
           path: |
             dist/myrient-dl-macos-universal
             dist/myrient-dl-cli-macos-universal
-            dist/myrient-dl.app
+            dist/myrient-dl.app.zip
 
   release:
     name: Create GitHub Release
@@ -198,7 +199,7 @@ jobs:
             artifacts/windows-x86_64/myrient-dl-cli-windows-x86_64.exe
             artifacts/macos-universal/myrient-dl-macos-universal
             artifacts/macos-universal/myrient-dl-cli-macos-universal
-            artifacts/macos-universal/myrient-dl.app
+            artifacts/macos-universal/myrient-dl.app.zip
           generate_release_notes: true
           body: |
             ## Downloads
@@ -207,6 +208,6 @@ jobs:
             |----------|-----|-----|
             | Linux x86_64 | [myrient-dl-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-linux-x86_64) | [myrient-dl-cli-linux-x86_64](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-linux-x86_64) |
             | Windows x86_64 | [myrient-dl-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-windows-x86_64.exe) | [myrient-dl-cli-windows-x86_64.exe](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-windows-x86_64.exe) |
-            | macOS Universal | [myrient-dl.app](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl.app) · [bare binary](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos-universal) | [myrient-dl-cli-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-macos-universal) |
+            | macOS Universal | [myrient-dl.app.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl.app.zip) · [bare binary](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-macos-universal) | [myrient-dl-cli-macos-universal](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/myrient-dl-cli-macos-universal) |
 
-            > **macOS:** Download `myrient-dl.app` and drag it to your Applications folder. On first launch, right-click → Open to bypass Gatekeeper.
+            > **macOS:** Download `myrient-dl.app.zip`, unzip it, and drag `myrient-dl.app` to your Applications folder. On first launch, right-click → Open to bypass Gatekeeper.
