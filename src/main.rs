@@ -1017,8 +1017,9 @@ struct App {
     search_last_exclude:  String,
     search_top_folders:   Vec<String>,
     search_highlight:     Option<String>,
-    scroll_to_highlight:  u8,   // countdown: set to 2 when highlight arrives, apply while >0
-    highlight_url:        Option<String>,  // URL of the entry to scroll to
+    scroll_to_highlight:  u8,
+    highlight_url:        Option<String>,
+    last_clicked_vis_idx: Option<usize>,  // anchor for shift-click range selection
     os_light:            bool,   // cached OS dark/light preference
     os_theme_last_check: f64,    // egui time of last dark_light::detect() call
     pal:                 Palette,       // current theme palette, updated each frame
@@ -1103,6 +1104,7 @@ impl App {
             search_highlight:    None,
             scroll_to_highlight: 0,
             highlight_url:       None,
+            last_clicked_vis_idx: None,
             os_light,
             os_theme_last_check: 0.0,
             pal:                 Palette::dark(),
@@ -1128,6 +1130,7 @@ impl App {
         self.status_msg    = "Fetching directory…".into();
         self.filter_query.clear();
         self.selected_urls.clear();
+        self.last_clicked_vis_idx = None;
         self.folder_selected.clear();
         let shared   = Arc::clone(&self.shared);
         let url      = format!("{}{}", BASE_URL, path);
@@ -2079,7 +2082,29 @@ impl App {
                     let mut sa = egui::ScrollArea::vertical()
                         .id_source("browser_rows")
                         .auto_shrink([false;2]);
-                    if self.pending_scroll_restore {
+                    if self.scroll_to_highlight > 0 {
+                        if let Some(ref hurl) = self.highlight_url.clone() {
+                            // Find the vis_pos of the target entry — works even before it's rendered
+                            let target_offset = self.entries.iter().enumerate()
+                                .find(|(_, e)| e.url.as_deref() == Some(hurl.as_str()))
+                                .map(|(entry_idx, _)| {
+                                    // visible is (0..len) when no filter, so vis_pos == entry_idx
+                                    let vis_pos = visible.iter().position(|&vi| vi == entry_idx)
+                                        .unwrap_or(entry_idx);
+                                    let row_top = vis_pos as f32 * row_h;
+                                    // Center the row in a typical viewport height of ~500px
+                                    (row_top - 250.0).max(0.0)
+                                });
+                            if let Some(offset) = target_offset {
+                                sa = sa.vertical_scroll_offset(offset);
+                                self.scroll_to_highlight -= 1;
+                                if self.scroll_to_highlight == 0 {
+                                    self.highlight_url = None;
+                                }
+                                ui.ctx().request_repaint();
+                            }
+                        }
+                    } else if self.pending_scroll_restore {
                         sa = sa.vertical_scroll_offset(saved_offset);
                         self.pending_scroll_restore = false;
                     }
@@ -2097,19 +2122,6 @@ impl App {
                         let (row_rect, response) = ui.allocate_exact_size(
                             Vec2::new(avail_w, row_h), egui::Sense::click());
                         let hovered = response.hovered();
-
-                        // Scroll to this row if it's the highlight target
-                        if self.scroll_to_highlight > 0 {
-                            if let Some(ref hurl) = self.highlight_url.clone() {
-                                if entry.url.as_deref() == Some(hurl.as_str()) {
-                                    ui.scroll_to_rect(row_rect, Some(egui::Align::Center));
-                                    self.scroll_to_highlight -= 1;
-                                    if self.scroll_to_highlight == 0 {
-                                        self.highlight_url = None;
-                                    }
-                                }
-                            }
-                        }
 
                         // Check if the click landed on the checkbox area (left 20px)
                         // We do this before drawing so we can suppress the row click below
@@ -2260,12 +2272,42 @@ impl App {
                                 }
                             }
                         } else if response.clicked() && !entry.is_folder {
-                            // Row click — toggle file selection (always allow deselect)
                             if let Some(ref url) = entry.url {
-                                if self.selected_urls.contains(url.as_ref()) {
+                                let modifiers = ui.input(|i| i.modifiers);
+                                if self.selected_urls.contains(url.as_ref()) && !modifiers.shift {
+                                    // Deselect on plain click or Ctrl+click of already-selected
                                     self.selected_urls.remove(url.as_ref());
-                                } else if !is_queued && !is_downloaded {
-                                    self.selected_urls.insert(url.to_string());
+                                    if !modifiers.ctrl && !modifiers.command {
+                                        self.last_clicked_vis_idx = None;
+                                    }
+                                } else if modifiers.shift {
+                                    // Shift+click: select range from anchor to here
+                                    let anchor = self.last_clicked_vis_idx.unwrap_or(vis_idx);
+                                    let lo = anchor.min(vis_idx);
+                                    let hi = anchor.max(vis_idx);
+                                    for ri in lo..=hi {
+                                        if ri < visible.len() {
+                                            let e = &entries[visible[ri]];
+                                            if !e.is_folder {
+                                                if let Some(ref u) = e.url {
+                                                    self.selected_urls.insert(u.to_string());
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else if modifiers.ctrl || modifiers.command {
+                                    // Ctrl/Cmd+click: add to selection
+                                    if !is_queued && !is_downloaded {
+                                        self.selected_urls.insert(url.to_string());
+                                    }
+                                    self.last_clicked_vis_idx = Some(vis_idx);
+                                } else {
+                                    // Plain click: select only this file
+                                    if !is_queued && !is_downloaded {
+                                        self.selected_urls.clear();
+                                        self.selected_urls.insert(url.to_string());
+                                        self.last_clicked_vis_idx = Some(vis_idx);
+                                    }
                                 }
                             }
                         }

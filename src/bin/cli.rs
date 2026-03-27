@@ -1,14 +1,14 @@
 // myrient-dl-cli — full terminal UI for myrient.erista.me
 //
 // Controls:
-//   ↑/↓ j/k   navigate list
+//   ^/v j/k   navigate list
 //   Enter/l    open folder or queue file
 //   h/Bksp     go back up
 //   Space      select/deselect item
 //   a          select all visible files
 //   A          deselect all
 //   q          add selected to queue
-//   Tab        switch pane (browser ↔ queue)
+//   Tab        switch pane (browser <> queue)
 //   s          start/pause queue
 //   x          remove selected queue items
 //   /          search across whole tree
@@ -41,7 +41,44 @@ use std::{
     time::{Duration, Instant},
 };
 
-// ── Shared types ─────────────────────────────────────────────────────────────
+
+// ---- Symbol set: Unicode where supported, ASCII fallback ----
+struct Symbols {
+    folder:    &'static str,
+    checked:   &'static str,
+    file:      &'static str,
+    sep:       &'static str,   // breadcrumb separator
+    dl_arrow:  &'static str,   // download speed prefix
+    paused:    &'static str,
+    running:   &'static str,
+    ellipsis:  &'static str,
+    bar:       &'static str,   // header separator
+}
+
+impl Symbols {
+    fn unicode() -> Self {
+        Self { folder: "▶", checked: "✓", file: "·", sep: "›",
+               dl_arrow: "↓", paused: "⏸", running: "▶", ellipsis: "…", bar: "│" }
+    }
+    fn ascii() -> Self {
+        Self { folder: ">", checked: "+", file: ".", sep: ">",
+               dl_arrow: "v", paused: "||", running: ">", ellipsis: "...", bar: "|" }
+    }
+    fn detect() -> Self {
+        // Check LANG/LC_ALL for UTF-8, or any known Unicode-capable terminal program.
+        // On Windows, UTF-8 mode is signalled by PYTHONIOENCODING, WT_SESSION (Windows Terminal),
+        // or the user having run 'chcp 65001'.
+        let is_utf8 = std::env::var("LANG").unwrap_or_default().to_uppercase().contains("UTF")
+            || std::env::var("LC_ALL").unwrap_or_default().to_uppercase().contains("UTF")
+            || std::env::var("LC_CTYPE").unwrap_or_default().to_uppercase().contains("UTF")
+            || std::env::var("TERM_PROGRAM").is_ok()   // iTerm2, VSCode terminal, etc.
+            || std::env::var("WT_SESSION").is_ok()     // Windows Terminal
+            || std::env::var("TERM").map(|t| t.contains("256color") || t == "xterm").unwrap_or(false);
+        if is_utf8 { Self::unicode() } else { Self::ascii() }
+    }
+}
+
+// -- Shared types -------------------------------------------------------------
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 enum JobStatus {
@@ -93,7 +130,7 @@ impl Semaphore {
     fn release(&self) { *self.count.lock().unwrap() += 1; self.cvar.notify_one(); }
 }
 
-// ── Persistence ───────────────────────────────────────────────────────────────
+// -- Persistence ---------------------------------------------------------------
 
 fn data_dir() -> std::path::PathBuf {
     let base = std::env::var("XDG_DATA_HOME").map(std::path::PathBuf::from).unwrap_or_else(|_| {
@@ -127,7 +164,7 @@ fn fmt_speed(bps: f64) -> String { match bps as u64 { b if b >= 1_000_000_000 =>
 fn fmt_eta(s: u64) -> String { if s >= 3600 { format!("{}h{}m", s/3600, (s%3600)/60) } else if s >= 60 { format!("{}m{}s", s/60, s%60) } else { format!("{}s", s) } }
 fn parse_size_str(s: &str) -> u64 { let s=s.trim(); if s.is_empty()||s=="-"{return 0;} let mut p=s.splitn(2,' '); let num:f64=p.next().unwrap_or("").parse().unwrap_or(0.0); let u=p.next().unwrap_or("").trim().to_uppercase(); let m:u64=match u.as_str(){"TIB"|"TB"=>1_099_511_627_776,"GIB"|"GB"=>1_073_741_824,"MIB"|"MB"=>1_048_576,"KIB"|"KB"=>1_024,_=>1}; (num*m as f64) as u64 }
 
-// ── HTTP ──────────────────────────────────────────────────────────────────────
+// -- HTTP ----------------------------------------------------------------------
 
 static CLIENT: once_cell::sync::Lazy<reqwest::blocking::Client> = once_cell::sync::Lazy::new(|| {
     reqwest::blocking::Client::builder().user_agent("myrient-dl-cli/1.0").timeout(Duration::from_secs(30)).build().expect("client")
@@ -170,7 +207,7 @@ fn guess_dest_path(dest: &str, url: &str) -> Option<String> {
     Some(path.to_string_lossy().into_owned())
 }
 
-// ── Download engine ───────────────────────────────────────────────────────────
+// -- Download engine -----------------------------------------------------------
 
 fn download_job(job: &QueueJob, dest: &str, shared: &Arc<Mutex<Shared>>, kill_rx: &std::sync::mpsc::Receiver<()>, max_retries: u32) -> JobStatus {
     let mut attempt = job.retry_count;
@@ -234,7 +271,7 @@ fn download_job(job: &QueueJob, dest: &str, shared: &Arc<Mutex<Shared>>, kill_rx
     }
 }
 
-// ── Download manager ──────────────────────────────────────────────────────────
+// -- Download manager ----------------------------------------------------------
 
 #[allow(dead_code)]
 enum DlCmd { Start(QueueJob, String, u32), Cancel(String), Shutdown }
@@ -269,7 +306,7 @@ fn start_dl_manager(shared: Arc<Mutex<Shared>>, settings: Settings) -> std::sync
     tx
 }
 
-// ── TUI App ───────────────────────────────────────────────────────────────────
+// -- TUI App -------------------------------------------------------------------
 
 #[derive(PartialEq, Clone, Copy)]
 enum Pane { Browser, Queue }
@@ -301,6 +338,7 @@ struct App {
     // UI
     active_pane:    Pane,
     status_msg:     String,
+    sym:            Symbols,
     browse_rx:      std::sync::mpsc::Receiver<(String, Result<Vec<DirEntry>, String>)>,
     browse_tx_clone: std::sync::mpsc::SyncSender<(String, Result<Vec<DirEntry>, String>)>,
 }
@@ -322,7 +360,7 @@ impl App {
             queue_state: ListState::default(), queue_sel: HashSet::new(),
             search_query: String::new(), searching: false,
             search_results: vec![], search_state: ListState::default(),
-            active_pane: Pane::Browser, status_msg: "Ready".into(),
+            active_pane: Pane::Browser, status_msg: "Ready".into(), sym: Symbols::detect(),
             browse_rx: brx, browse_tx_clone: btx,
         }
     }
@@ -554,7 +592,7 @@ impl App {
     }
 }
 
-// ── Drawing ───────────────────────────────────────────────────────────────────
+// -- Drawing -------------------------------------------------------------------
 
 fn draw(f: &mut ratatui::Frame, app: &mut App) {
     let size = f.area();
@@ -578,9 +616,9 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
         (s.queue.len(), s.active_dl, bps)
     };
     let header_text = if active_dl > 0 {
-        format!(" myrient-dl-cli  │  ↓ {}  │  {} active  │  {} queued  │  dest: {}", fmt_speed(total_bps), active_dl, queue_len, app.settings.dest_path)
+        format!(" myrient-dl-cli  {bar} {arrow} {spd}  {bar} {act} active  {bar} {q} queued  {bar} dest: {dest}", bar=app.sym.bar, arrow=app.sym.dl_arrow, spd=fmt_speed(total_bps), act=active_dl, q=queue_len, dest=app.settings.dest_path)
     } else {
-        format!(" myrient-dl-cli  │  {} queued  │  dest: {}", queue_len, app.settings.dest_path)
+        format!(" myrient-dl-cli  {} {} queued {} dest: {}", app.sym.bar, queue_len, app.sym.bar, app.settings.dest_path)
     };
     f.render_widget(Paragraph::new(header_text).style(Style::default().fg(green).bg(Color::Rgb(0x0e,0x15,0x11))), outer[0]);
 
@@ -588,7 +626,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     let main = Layout::default().direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(60), Constraint::Percentage(40)]).split(outer[1]);
 
-    // ── Browser panel ──
+    // -- Browser panel --
     let browser_block = Block::default().title(if app.active_pane == Pane::Browser { " [ BROWSER ] " } else { " BROWSER " })
         .borders(Borders::ALL).border_style(Style::default().fg(if app.active_pane == Pane::Browser { green } else { dim }));
     let inner_browser = browser_block.inner(main[0]);
@@ -606,7 +644,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
 
     // Breadcrumb line
     let crumb_str = if app.crumb_stack.is_empty() { "/files/".to_string() }
-        else { format!("/files/ › {}", app.crumb_stack.iter().map(|(l,_)| l.as_str()).collect::<Vec<_>>().join(" › ")) };
+        else { format!("/files/ {} {}", app.sym.sep, app.crumb_stack.iter().map(|(l,_)| l.as_str()).collect::<Vec<_>>().join(&format!(" {} ", app.sym.sep))) };
     f.render_widget(Paragraph::new(crumb_str).style(Style::default().fg(text)), browser_layout[0]);
 
     // Search bar
@@ -625,7 +663,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     // Entry list or search results — apply filter
     let list_area = browser_layout[3];
     if app.loading {
-        f.render_widget(Paragraph::new("  fetching…").style(Style::default().fg(muted)), list_area);
+        f.render_widget(Paragraph::new("  fetching...").style(Style::default().fg(muted)), list_area);
     } else if let Some(ref e) = app.load_error.clone() {
         f.render_widget(Paragraph::new(format!("  error: {}", e)).style(Style::default().fg(err)), list_area);
     } else if app.searching {
@@ -649,10 +687,10 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             let is_sel    = e.url.as_ref().map(|u| app.selected_urls.contains(u)).unwrap_or(false);
             let is_queued = e.url.as_ref().map(|u| app.queued_urls.contains(u)).unwrap_or(false);
             let is_dl     = e.url.as_ref().map(|u| app.downloaded.contains(u)).unwrap_or(false);
-            let icon = if e.is_folder { "▶" } else if is_dl { "✓" } else { "·" };
+            let icon = if e.is_folder { app.sym.folder } else if is_dl { app.sym.checked } else { app.sym.file };
             let icon_style = if e.is_folder { Style::default().fg(blue) } else if is_dl { Style::default().fg(green) } else { Style::default().fg(muted) };
             let name_style = if is_queued { Style::default().fg(green) } else if is_dl { Style::default().fg(Color::Rgb(0x2a,0x50,0x3a)) } else if e.is_folder { Style::default().fg(blue) } else if is_sel { Style::default().fg(green).add_modifier(Modifier::BOLD) } else { Style::default().fg(file_c) };
-            let prefix = if is_sel { "[✓] " } else { "    " };
+            let prefix = if is_sel { &format!("[{}] ", app.sym.checked) } else { "    " };
             let size_str = if e.size.is_empty() || e.size == "-" { String::new() } else { format!(" {}", &e.size) };
             ListItem::new(Line::from(vec![
                 Span::styled(format!(" {} ", icon), icon_style),
@@ -664,7 +702,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
         f.render_stateful_widget(list, list_area, &mut app.browser_state);
     }
 
-    // ── Queue panel ──
+    // -- Queue panel --
     let queue_block = Block::default().title(if app.active_pane == Pane::Queue { " [ QUEUE ] " } else { " QUEUE " })
         .borders(Borders::ALL).border_style(Style::default().fg(if app.active_pane == Pane::Queue { green } else { dim }));
     let inner_queue = queue_block.inner(main[1]);
@@ -685,7 +723,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
                 JobStatus::Error(_)    => err,
                 _                      => text,
             };
-            let prefix = if sel { "[✓]" } else { "   " };
+            let prefix = if sel { &format!("[{}]", app.sym.checked) } else { "   " };
             let size_str = if j.file_size > 0 { format!(" {}", fmt_size(j.file_size)) } else { String::new() };
             let prog = s.progress.get(&j.id);
             let pct_str = prog.map(|p| if p.percent > 0.0 { format!(" {:3.0}%", p.percent) } else { String::new() }).unwrap_or_default();
@@ -709,9 +747,9 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     // Active download gauge(s)
     if !active_jobs.is_empty() {
         let (_, prog) = &active_jobs[0];
-        let speed_str = if prog.speed_bps > 0.0 { fmt_speed(prog.speed_bps) } else { "…".into() };
-        let eta_str   = prog.eta_secs.map(fmt_eta).unwrap_or_else(|| "…".into());
-        let label = format!(" ↓ {}  ETA {}  ({} active)", speed_str, eta_str, active_jobs.len());
+        let speed_str = if prog.speed_bps > 0.0 { fmt_speed(prog.speed_bps) } else { app.sym.ellipsis.to_string() };
+        let eta_str   = prog.eta_secs.map(fmt_eta).unwrap_or_else(|| "...".into());
+        let label = format!(" {} {}  ETA {}  ({} active)", app.sym.dl_arrow, speed_str, eta_str, active_jobs.len());
         let gauge = Gauge::default()
             .block(Block::default().borders(Borders::TOP))
             .gauge_style(Style::default().fg(green).bg(Color::Rgb(0x0c,0x18,0x0e)))
@@ -719,23 +757,23 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             .label(label);
         f.render_widget(gauge, queue_layout[1]);
     } else {
-        let state_label = if app.settings.queue_paused { " ⏸ paused  (s to start)" } else { " ▶ running" };
+        let state_label = if app.settings.queue_paused { format!(" {} paused  (s to start)", app.sym.paused) } else { format!(" {} running", app.sym.running) };
         f.render_widget(Paragraph::new(state_label).style(Style::default().fg(muted)).block(Block::default().borders(Borders::TOP)), queue_layout[1]);
     }
 
     // Status bar
     let keys = if app.filtering {
-        " Type to filter  Esc clear  ↑↓ navigate"
+        " Type to filter  Esc clear  ^v navigate"
     } else if app.searching {
-        " Type to search  Esc clear  ↑↓ navigate  Enter go to folder"
+        " Type to search  Esc clear  ^v navigate  Enter go to folder"
     } else {
-        " ↑↓/jk nav  Enter open  Space sel  a all  q queue  f filter  / search  Tab switch  s start  x remove  Q quit"
+        " ^v/jk nav  Enter open  Space sel  a all  q queue  f filter  / search  Tab switch  s start  x remove  Q quit"
     };
-    let status = format!(" {}  │  {}", app.status_msg, keys);
+    let status = format!(" {}  |  {}", app.status_msg, keys);
     f.render_widget(Paragraph::new(status).style(Style::default().fg(dim)), outer[2]);
 }
 
-// ── Event loop ────────────────────────────────────────────────────────────────
+// -- Event loop ----------------------------------------------------------------
 
 fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> {
     let mut app = App::new();
@@ -760,6 +798,10 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
         let mut processed = 0;
         while processed < MAX_EVENTS_PER_FRAME && event::poll(Duration::from_millis(0))? {
             if let Ok(Event::Key(key)) = event::read() {
+                // Only handle key press events — ignore Release and Repeat to prevent double input
+                if key.kind != crossterm::event::KeyEventKind::Press {
+                    continue;
+                }
                 processed += 1;
 
             // Filter mode captures typing
