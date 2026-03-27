@@ -325,28 +325,38 @@ fn path_to_dir_key(path: &str) -> &str {
 /// Serve directory listing from baked-in generated_dirs if available,
 /// otherwise fall back to an HTTP request.
 fn fetch_directory(url: &str, rel_path: &str) -> Result<Vec<DirEntry>, String> {
+    fetch_directory_inner(url, rel_path, false)
+}
+
+fn fetch_directory_force(url: &str, rel_path: &str) -> Result<Vec<DirEntry>, String> {
+    fetch_directory_inner(url, rel_path, true)
+}
+
+fn fetch_directory_inner(url: &str, rel_path: &str, force: bool) -> Result<Vec<DirEntry>, String> {
     let key = path_to_dir_key(rel_path);
-    if let Some(baked) = generated_dirs::lookup(key) {
-        if !baked.is_empty() {
-            let entries = baked.into_iter().map(|e| {
-                let file_url: Option<Arc<str>> = if !e.is_folder {
-                    reqwest::Url::parse(url).ok()
-                        .and_then(|b| b.join(&e.href).ok())
-                        .map(|u| Arc::from(u.as_str()))
-                } else { None };
-                DirEntry {
-                    name:      Arc::from(e.name.as_str()),
-                    href:      Arc::from(e.href.as_str()),
-                    size:      Arc::from(if e.size == "-" { "" } else { e.size.as_str() }),
-                    date:      Arc::from(e.date.as_str()),
-                    is_folder: e.is_folder,
-                    url:       file_url,
-                }
-            }).collect();
-            return Ok(entries);
+    if !force {
+        if let Some(baked) = generated_dirs::lookup(key) {
+            if !baked.is_empty() {
+                let entries = baked.into_iter().map(|e| {
+                    let file_url: Option<Arc<str>> = if !e.is_folder {
+                        reqwest::Url::parse(url).ok()
+                            .and_then(|b| b.join(&e.href).ok())
+                            .map(|u| Arc::from(u.as_str()))
+                    } else { None };
+                    DirEntry {
+                        name:      Arc::from(e.name.as_str()),
+                        href:      Arc::from(e.href.as_str()),
+                        size:      Arc::from(if e.size == "-" { "" } else { e.size.as_str() }),
+                        date:      Arc::from(e.date.as_str()),
+                        is_folder: e.is_folder,
+                        url:       file_url,
+                    }
+                }).collect();
+                return Ok(entries);
+            }
         }
     }
-    // Not in local index — fetch live and persist for next time
+    // Fetch live and persist for next time
     let entries = fetch_directory_http(url)?;
     let persist_entries: Vec<generated_dirs::DirEntry> = entries.iter().map(|e| {
         generated_dirs::DirEntry {
@@ -1005,7 +1015,6 @@ struct App {
     folder_pick_rx:       std::sync::mpsc::Receiver<Option<String>>,
     filter_query:         String,
     search_query:         String,
-    search_open:          bool,
     browser_tab:          BrowserTab,
     search_include:       String,
     search_exclude:       String,
@@ -1019,7 +1028,8 @@ struct App {
     search_highlight:     Option<String>,
     scroll_to_highlight:  u8,
     highlight_url:        Option<String>,
-    last_clicked_vis_idx: Option<usize>,  // anchor for shift-click range selection
+    last_clicked_vis_idx: Option<usize>,
+    force_refresh:        bool,
     os_light:            bool,   // cached OS dark/light preference
     os_theme_last_check: f64,    // egui time of last dark_light::detect() call
     pal:                 Palette,       // current theme palette, updated each frame
@@ -1091,7 +1101,6 @@ impl App {
             dl_tx, folder_pick_tx: fp_tx, folder_pick_rx: fp_rx,
             filter_query:  String::new(),
             search_query:  String::new(),
-            search_open:   false,
             browser_tab:   BrowserTab::Browse,
             search_include: String::new(),
             search_exclude: String::new(),
@@ -1105,6 +1114,7 @@ impl App {
             scroll_to_highlight: 0,
             highlight_url:       None,
             last_clicked_vis_idx: None,
+            force_refresh:        false,
             os_light,
             os_theme_last_check: 0.0,
             pal:                 Palette::dark(),
@@ -1135,8 +1145,11 @@ impl App {
         let shared   = Arc::clone(&self.shared);
         let url      = format!("{}{}", BASE_URL, path);
         let rel_path = path.clone();
+        let force    = self.force_refresh;
+        self.force_refresh = false;
         thread::spawn(move || {
-            let result = fetch_directory(&url, &rel_path);
+            let result = if force { fetch_directory_force(&url, &rel_path) }
+                         else     { fetch_directory(&url, &rel_path) };
             shared.lock().unwrap().browse_result = Some((path, result));
         });
     }
@@ -1978,6 +1991,18 @@ impl App {
                                         }
                                     }
                                 }
+                            }
+                            ui.add_space(4.0);
+                            // Refresh — force re-fetch from HTTP, update local cache
+                            if ui.add(egui::Button::new(mono("↻ refresh", 9.0, self.pal.muted))
+                                .fill(Color32::TRANSPARENT)
+                                .stroke(Stroke::new(0.5, self.pal.border2))
+                                .min_size(Vec2::new(58.0, 18.0))
+                            ).on_hover_text("Re-fetch this folder from the server and update the local cache")
+                            .clicked() {
+                                self.force_refresh = true;
+                                let path = self.current_path.clone();
+                                self.navigate(path);
                             }
 
                             // Filter field and count — fill remaining space left-to-right

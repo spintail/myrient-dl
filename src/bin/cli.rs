@@ -126,8 +126,10 @@ struct Shared { queue: Vec<QueueJob>, progress: HashMap<String, Progress>, activ
 struct Semaphore { count: Mutex<usize>, cvar: std::sync::Condvar }
 impl Semaphore {
     fn new(n: usize) -> Self { Self { count: Mutex::new(n), cvar: std::sync::Condvar::new() } }
+    fn try_acquire(&self) -> bool { let mut g = self.count.lock().unwrap(); if *g > 0 { *g -= 1; true } else { false } }
     fn acquire(&self) { let mut g = self.count.lock().unwrap(); while *g == 0 { g = self.cvar.wait(g).unwrap(); } *g -= 1; }
     fn release(&self) { *self.count.lock().unwrap() += 1; self.cvar.notify_one(); }
+    fn set_limit(&self, n: usize) { let mut g = self.count.lock().unwrap(); *g = n; self.cvar.notify_all(); }
 }
 
 // -- Persistence ---------------------------------------------------------------
@@ -274,7 +276,7 @@ fn download_job(job: &QueueJob, dest: &str, shared: &Arc<Mutex<Shared>>, kill_rx
 // -- Download manager ----------------------------------------------------------
 
 #[allow(dead_code)]
-enum DlCmd { Start(QueueJob, String, u32), Cancel(String), Shutdown }
+enum DlCmd { Start(QueueJob, String, u32), Cancel(String), SetConcurrent(usize), Shutdown }
 
 fn start_dl_manager(shared: Arc<Mutex<Shared>>, settings: Settings) -> std::sync::mpsc::Sender<DlCmd> {
     let (tx, rx) = std::sync::mpsc::channel::<DlCmd>();
@@ -285,14 +287,17 @@ fn start_dl_manager(shared: Arc<Mutex<Shared>>, settings: Settings) -> std::sync
             match cmd {
                 DlCmd::Shutdown => break,
                 DlCmd::Cancel(id) => { if let Some(tx) = kill_txs.remove(&id) { let _ = tx.send(()); } }
+                DlCmd::SetConcurrent(n) => { sem.set_limit(n); }
                 DlCmd::Start(job, dest, max_retries) => {
+                    // Only spawn if a semaphore slot is immediately available
+                    // This prevents thread exhaustion from large queues
+                    if !sem.try_acquire() { continue; }
                     let sem2 = Arc::clone(&sem);
                     let shared2 = Arc::clone(&shared);
                     let (kill_tx, kill_rx) = std::sync::mpsc::channel();
                     kill_txs.insert(job.id.clone(), kill_tx);
                     let jid = job.id.clone();
                     thread::spawn(move || {
-                        sem2.acquire();
                         { let mut s = shared2.lock().unwrap(); s.active_dl += 1; s.progress.insert(jid.clone(), Progress::default()); if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid) { j.status = JobStatus::Spooling; } }
                         let status = download_job(&job, &dest, &shared2, &kill_rx, max_retries);
                         { let mut s = shared2.lock().unwrap(); s.active_dl = s.active_dl.saturating_sub(1); if let Some(j) = s.queue.iter_mut().find(|j| j.id == jid) { j.status = status.clone(); if status == JobStatus::Done { j.resume = false; } } }
@@ -339,6 +344,8 @@ struct App {
     active_pane:    Pane,
     status_msg:     String,
     sym:            Symbols,
+    frame:          u64,   // incremented each draw, drives animations
+    force_refresh:  bool,
     browse_rx:      std::sync::mpsc::Receiver<(String, Result<Vec<DirEntry>, String>)>,
     browse_tx_clone: std::sync::mpsc::SyncSender<(String, Result<Vec<DirEntry>, String>)>,
 }
@@ -360,7 +367,7 @@ impl App {
             queue_state: ListState::default(), queue_sel: HashSet::new(),
             search_query: String::new(), searching: false,
             search_results: vec![], search_state: ListState::default(),
-            active_pane: Pane::Browser, status_msg: "Ready".into(), sym: Symbols::detect(),
+            active_pane: Pane::Browser, status_msg: "Ready".into(), sym: Symbols::detect(), frame: 0, force_refresh: false,
             browse_rx: brx, browse_tx_clone: btx,
         }
     }
@@ -371,29 +378,33 @@ impl App {
         self.selected_urls.clear(); self.browser_state = ListState::default();
         self.filter_query.clear();
 
-        // Check local index first
+        // Check local index first (skip if force_refresh)
+        let force = self.force_refresh;
+        self.force_refresh = false;
         let key = path.trim_matches('/').to_string();
-        if let Some(baked) = generated_dirs::lookup(&key) {
-            if !baked.is_empty() {
-                self.loading = false;
-                let url_base = format!("{}{}", BASE_URL, path);
-                let entries: Vec<DirEntry> = baked.into_iter().map(|e| {
-                    let file_url = if !e.is_folder {
-                        reqwest::Url::parse(&url_base).ok()
-                            .and_then(|b| b.join(&e.href).ok())
-                            .map(|u| u.to_string())
-                    } else { None };
-                    DirEntry { name: e.name, href: e.href, size: e.size, is_folder: e.is_folder, url: file_url }
-                }).collect();
-                let folders = entries.iter().filter(|x| x.is_folder).count();
-                let files   = entries.iter().filter(|x| !x.is_folder).count();
-                self.status_msg = format!("{} folders  {}  files", folders, files);
-                self.entries = entries;
-                return;
+        if !force {
+            if let Some(baked) = generated_dirs::lookup(&key) {
+                if !baked.is_empty() {
+                    self.loading = false;
+                    let url_base = format!("{}{}", BASE_URL, path);
+                    let entries: Vec<DirEntry> = baked.into_iter().map(|e| {
+                        let file_url = if !e.is_folder {
+                            reqwest::Url::parse(&url_base).ok()
+                                .and_then(|b| b.join(&e.href).ok())
+                                .map(|u| u.to_string())
+                        } else { None };
+                        DirEntry { name: e.name, href: e.href, size: e.size, is_folder: e.is_folder, url: file_url }
+                    }).collect();
+                    let folders = entries.iter().filter(|x| x.is_folder).count();
+                    let files   = entries.iter().filter(|x| !x.is_folder).count();
+                    self.status_msg = format!("{} folders  {}  files", folders, files);
+                    self.entries = entries;
+                    return;
+                }
             }
         }
 
-        // Fall back to live HTTP fetch
+        // Live HTTP fetch (also persists result to local cache)
         let url = format!("{}{}", BASE_URL, path);
         let tx = self.browse_tx_clone.clone();
         thread::spawn(move || {
@@ -418,6 +429,22 @@ impl App {
 
     fn poll_browse(&mut self) {
         if let Ok((path, result)) = self.browse_rx.try_recv() {
+            // Folder-queue result
+            if let Some(folder_path) = path.strip_prefix("__folder_queue__") {
+                if let Ok(entries) = result {
+                    let n: usize = entries.iter().filter(|e| !e.is_folder).filter(|e| {
+                        e.url.as_ref().map(|u| !self.queued_urls.contains(u)).unwrap_or(false)
+                    }).count();
+                    for e in entries.into_iter().filter(|e| !e.is_folder) {
+                        if let Some(url) = e.url {
+                            let sz = parse_size_str(&e.size);
+                            self.add_to_queue(url, e.name, sz);
+                        }
+                    }
+                    self.status_msg = format!("Queued {} file{} from {}", n, if n==1{""} else {"s"}, folder_path.rsplit('/').next().unwrap_or(folder_path));
+                }
+                return;
+            }
             if path == self.current_path {
                 self.loading = false;
                 match result {
@@ -554,14 +581,45 @@ impl App {
     fn toggle_select(&mut self) {
         if let Some(i) = self.browser_state.selected() {
             if let Some(entry) = self.entries.get(i) {
-                if !entry.is_folder {
-                    if let Some(url) = &entry.url {
-                        if self.selected_urls.contains(url.as_str()) { self.selected_urls.remove(url.as_str()); }
-                        else if !self.queued_urls.contains(url.as_str()) && !self.downloaded.contains(url.as_str()) { self.selected_urls.insert(url.clone()); }
-                    }
+                if entry.is_folder {
+                    // Selecting a folder marks it for queuing via q
+                    // (no URL to track, just note the href)
+                } else if let Some(url) = &entry.url {
+                    if self.selected_urls.contains(url.as_str()) { self.selected_urls.remove(url.as_str()); }
+                    else if !self.queued_urls.contains(url.as_str()) && !self.downloaded.contains(url.as_str()) { self.selected_urls.insert(url.clone()); }
                 }
             }
         }
+    }
+
+    fn queue_folder_at_cursor(&mut self) {
+        let entry = if let Some(i) = self.browser_state.selected() {
+            self.entries.get(i).cloned()
+        } else { None };
+        let Some(entry) = entry else { return };
+        if !entry.is_folder { self.queue_selected(); return; }
+        let folder_path = format!("{}{}", self.current_path, entry.href);
+        let folder_url  = format!("{}{}", BASE_URL, folder_path);
+        let tx = self.browse_tx_clone.clone();
+        let key = folder_path.trim_matches('/').to_string();
+        self.status_msg = format!("Fetching {} for queuing…", entry.name);
+        thread::spawn(move || {
+            // Try local cache first
+            let result = if let Some(baked) = generated_dirs::lookup(&key) {
+                if !baked.is_empty() {
+                    let url_base = folder_url.clone();
+                    let entries: Vec<DirEntry> = baked.into_iter().filter_map(|e| {
+                        if e.is_folder { return None; }
+                        let url = reqwest::Url::parse(&url_base).ok()
+                            .and_then(|b| b.join(&e.href).ok())
+                            .map(|u| u.to_string())?;
+                        Some(DirEntry { name: e.name, href: e.href, size: e.size, is_folder: false, url: Some(url) })
+                    }).collect();
+                    Ok(entries)
+                } else { fetch_dir(&folder_url) }
+            } else { fetch_dir(&folder_url) };
+            let _ = tx.send((format!("__folder_queue__{}", folder_path), result));
+        });
     }
 
     fn queue_up(&mut self) {
@@ -607,7 +665,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
 
     // Layout: header | main | status bar
     let outer = Layout::default().direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)]).split(size);
+        .constraints([Constraint::Length(1), Constraint::Min(0), Constraint::Length(2)]).split(size);
 
     // Header bar
     let (queue_len, active_dl, total_bps) = {
@@ -616,7 +674,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
         (s.queue.len(), s.active_dl, bps)
     };
     let header_text = if active_dl > 0 {
-        format!(" myrient-dl-cli  {bar} {arrow} {spd}  {bar} {act} active  {bar} {q} queued  {bar} dest: {dest}", bar=app.sym.bar, arrow=app.sym.dl_arrow, spd=fmt_speed(total_bps), act=active_dl, q=queue_len, dest=app.settings.dest_path)
+        format!(" myrient-dl-cli  {bar} {arrow} {spd}  {bar} {act} active  {bar} {q} queued  {bar} t:{t} r:{r}  {bar} dest: {dest}", bar=app.sym.bar, arrow=app.sym.dl_arrow, spd=fmt_speed(total_bps), act=active_dl, q=queue_len, t=app.settings.concurrent, r=app.settings.max_retries, dest=app.settings.dest_path)
     } else {
         format!(" myrient-dl-cli  {} {} queued {} dest: {}", app.sym.bar, queue_len, app.sym.bar, app.settings.dest_path)
     };
@@ -711,29 +769,42 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     let queue_layout = Layout::default().direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(3)]).split(inner_queue);
 
+    let spinner_frames = if app.sym.folder == ">" {
+        // ASCII fallback spinner
+        ["|", "/", "-", "\\", "|", "/", "-", "\\"]
+    } else {
+        // Unicode spinner
+        ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"]
+    };
     let (queue_items, active_jobs): (Vec<ListItem>, Vec<(String, Progress)>) = {
         let s = app.shared.lock().unwrap();
         let items = s.queue.iter().enumerate().map(|(i, j)| {
             let sel = app.queue_sel.contains(&j.id);
-            let status_col = match &j.status {
-                JobStatus::Waiting     => muted,
-                JobStatus::Downloading => warn,
-                JobStatus::Paused      => blue,
-                JobStatus::Done        => green,
-                JobStatus::Error(_)    => err,
-                _                      => text,
+            let (status_sym, status_col) = match &j.status {
+                JobStatus::Waiting     => ("·", muted),
+                JobStatus::Spooling    => (spinner_frames[(app.frame / 2) as usize % spinner_frames.len()], warn),
+                JobStatus::Downloading => (spinner_frames[(app.frame / 2) as usize % spinner_frames.len()], green),
+                JobStatus::Verifying   => (spinner_frames[(app.frame / 2) as usize % spinner_frames.len()], blue),
+                JobStatus::Paused      => (if app.sym.folder == ">" { "=" } else { "‖" }, blue),
+                JobStatus::Done        => ("+", green),
+                JobStatus::Error(_)    => ("!", err),
             };
-            let prefix = if sel { &format!("[{}]", app.sym.checked) } else { "   " };
-            let size_str = if j.file_size > 0 { format!(" {}", fmt_size(j.file_size)) } else { String::new() };
+            let sel_sym = if sel { app.sym.checked } else { " " };
             let prog = s.progress.get(&j.id);
-            let pct_str = prog.map(|p| if p.percent > 0.0 { format!(" {:3.0}%", p.percent) } else { String::new() }).unwrap_or_default();
-            let name_w = 28usize;
-            let name_trunc = if j.name.len() > name_w { &j.name[..name_w] } else { &j.name };
+            let pct_str = prog.and_then(|p| if p.percent > 0.0 { Some(format!("{:3.0}%", p.percent)) } else { None });
+            // Left: [sel] [status] name — name truncated to fill, no text on right
+            let avail_name = 34usize;
+            let name_trunc = &j.name[..j.name.len().min(avail_name)];
+            let right = if let Some(pct) = pct_str {
+                format!(" {}", pct)
+            } else if j.file_size > 0 {
+                format!(" {}", fmt_size(j.file_size))
+            } else { String::new() };
             let line = Line::from(vec![
-                Span::styled(format!(" {} ", prefix), Style::default().fg(if sel { green } else { dim })),
-                Span::styled(format!("{:<28}", name_trunc), Style::default().fg(text)),
-                Span::styled(format!("{:<8}", j.status.label()), Style::default().fg(status_col)),
-                Span::styled(format!("{}{}", pct_str, size_str), Style::default().fg(muted)),
+                Span::styled(format!("{} ", sel_sym), Style::default().fg(if sel { green } else { dim })),
+                Span::styled(format!("{} ", status_sym), Style::default().fg(status_col)),
+                Span::styled(format!("{:<34}", name_trunc), Style::default().fg(if matches!(j.status, JobStatus::Done) { muted } else { text })),
+                Span::styled(right, Style::default().fg(muted)),
             ]);
             ListItem::new(line).style(if app.queue_state.selected() == Some(i) { Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)) } else { Style::default() })
         }).collect();
@@ -749,7 +820,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
         let (_, prog) = &active_jobs[0];
         let speed_str = if prog.speed_bps > 0.0 { fmt_speed(prog.speed_bps) } else { app.sym.ellipsis.to_string() };
         let eta_str   = prog.eta_secs.map(fmt_eta).unwrap_or_else(|| "...".into());
-        let label = format!(" {} {}  ETA {}  ({} active)", app.sym.dl_arrow, speed_str, eta_str, active_jobs.len());
+        let label = format!(" {} {}  ETA {}  ({} active  t:{} r:{})", app.sym.dl_arrow, speed_str, eta_str, active_jobs.len(), app.settings.concurrent, app.settings.max_retries);
         let gauge = Gauge::default()
             .block(Block::default().borders(Borders::TOP))
             .gauge_style(Style::default().fg(green).bg(Color::Rgb(0x0c,0x18,0x0e)))
@@ -757,20 +828,34 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             .label(label);
         f.render_widget(gauge, queue_layout[1]);
     } else {
-        let state_label = if app.settings.queue_paused { format!(" {} paused  (s to start)", app.sym.paused) } else { format!(" {} running", app.sym.running) };
+        let state_label = if app.settings.queue_paused {
+            format!(" {} paused  (s to start)  threads:{} retries:{}", app.sym.paused, app.settings.concurrent, app.settings.max_retries)
+        } else {
+            format!(" {} running  +- threads:{}  [] retries:{}", app.sym.running, app.settings.concurrent, app.settings.max_retries)
+        };
         f.render_widget(Paragraph::new(state_label).style(Style::default().fg(muted)).block(Block::default().borders(Borders::TOP)), queue_layout[1]);
     }
 
-    // Status bar
-    let keys = if app.filtering {
-        " Type to filter  Esc clear  ^v navigate"
+    // Status bar — 2 lines: status message + hint row 1, hint row 2
+    let sep = if app.sym.bar == "|" { "  |  " } else { "  │  " };
+    let (hint1, hint2): (String, String) = if app.filtering {
+        (format!("type to filter{sep}Esc clear{sep}jk navigate"), format!("Space select{sep}q queue selected{sep}Enter close filter"))
     } else if app.searching {
-        " Type to search  Esc clear  ^v navigate  Enter go to folder"
+        (format!("type to search{sep}Esc clear{sep}jk navigate"), format!("Space queue item{sep}Enter go to folder"))
     } else {
-        " ^v/jk nav  Enter open  Space sel  a all  q queue  f filter  / search  Tab switch  s start  x remove  Q quit"
+        (
+            format!("jk/↑↓ navigate{sep}Enter open{sep}Space select{sep}a all{sep}A deselect{sep}q queue files/folder{sep}/ search{sep}f filter{sep}Tab switch"),
+            format!("s pause/resume{sep}+- threads{sep}[] retries{sep}R refresh{sep}x remove{sep}Q/^C quit"),
+        )
     };
-    let status = format!(" {}  |  {}", app.status_msg, keys);
-    f.render_widget(Paragraph::new(status).style(Style::default().fg(dim)), outer[2]);
+    let line1 = Line::from(vec![
+        Span::styled(format!(" {}  {} ", app.status_msg, sep.trim()), Style::default().fg(text)),
+        Span::styled(&hint1, Style::default().fg(muted)),
+    ]);
+    let line2 = Line::from(vec![
+        Span::styled(format!(" {}", &hint2), Style::default().fg(muted)),
+    ]);
+    f.render_widget(Paragraph::new(vec![line1, line2]), outer[2]);
 }
 
 // -- Event loop ----------------------------------------------------------------
@@ -788,6 +873,7 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
         { let s = app.shared.lock().unwrap(); let has_waiting = s.queue.iter().any(|j| j.status == JobStatus::Waiting); let active = s.active_dl; drop(s); if !app.settings.queue_paused && has_waiting && active < app.settings.concurrent { app.kick_downloads(); } }
 
         terminal.draw(|f| draw(f, &mut app))?;
+        app.frame = app.frame.wrapping_add(1);
 
         // Process at most N key events per frame to prevent scroll spam lockup.
         // Any excess events are discarded — the UI stays responsive.
@@ -804,18 +890,18 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 }
                 processed += 1;
 
-            // Filter mode captures typing
+            // Filter mode: typing updates filter, but nav/select/queue still work
             if app.filtering {
                 match key.code {
-                    KeyCode::Esc | KeyCode::Enter => {
-                        app.filtering = false;
-                        if key.code == KeyCode::Esc { app.filter_query.clear(); }
-                    }
-                    KeyCode::Backspace => { app.filter_query.pop(); app.browser_state.select(Some(0)); }
-                    KeyCode::Char(c) => { app.filter_query.push(c); app.browser_state.select(Some(0)); }
-                    _ => {}
+                    KeyCode::Esc => { app.filtering = false; app.filter_query.clear(); continue; }
+                    KeyCode::Backspace => { app.filter_query.pop(); app.browser_state.select(Some(0)); continue; }
+                    // Action keys fall through; everything else is filter input
+                    KeyCode::Up | KeyCode::Down | KeyCode::Enter
+                    | KeyCode::Char(' ') | KeyCode::Char('q')
+                    | KeyCode::Char('j') | KeyCode::Char('k') => {} // fall through
+                    KeyCode::Char(c) => { app.filter_query.push(c); app.browser_state.select(Some(0)); continue; }
+                    _ => { continue; }
                 }
-                continue;
             }
 
             // Search mode captures most keys
@@ -826,6 +912,19 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                     KeyCode::Up   | KeyCode::Char('k') => app.browser_up(),
                     KeyCode::Down | KeyCode::Char('j') => app.browser_down(),
                     KeyCode::Backspace => { app.search_query.pop(); app.do_search(); }
+                    // Space: queue the highlighted search result directly
+                    KeyCode::Char(' ') => {
+                        if let Some(i) = app.search_state.selected() {
+                            if let Some((name, full_path)) = app.search_results.get(i).cloned() {
+                                let url = format!("{}{}", BASE_URL, full_path);
+                                if !app.queued_urls.contains(&url) {
+                                    let n = name.clone();
+                                    app.add_to_queue(url, n.clone(), 0);
+                                    app.status_msg = format!("Queued: {}", n);
+                                }
+                            }
+                        }
+                    }
                     KeyCode::Char(c) => { app.search_query.push(c); app.do_search(); }
                     _ => {}
                 }
@@ -833,13 +932,13 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
             }
 
             match key.code {
-                // Quit
-                KeyCode::Char('Q') | KeyCode::Char('q') if key.modifiers.contains(KeyModifiers::SHIFT) => {
+                // Quit — Q, Ctrl+C, or Ctrl+Q
+                KeyCode::Char('Q') => {
                     save_queue(&app.shared.lock().unwrap().queue);
                     let _ = app.dl_tx.send(DlCmd::Shutdown);
                     break 'main;
                 }
-                KeyCode::Char('Q') if !key.modifiers.contains(KeyModifiers::SHIFT) => {
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     save_queue(&app.shared.lock().unwrap().queue);
                     let _ = app.dl_tx.send(DlCmd::Shutdown);
                     break 'main;
@@ -868,7 +967,15 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 }
                 KeyCode::Char('A') => { app.selected_urls.clear(); app.queue_sel.clear(); }
                 KeyCode::Char('q') => {
-                    if app.active_pane == Pane::Browser { app.queue_selected(); }
+                    if app.active_pane == Pane::Browser {
+                        // If cursor is on a folder, queue all its files; otherwise queue selected files
+                        let on_folder = app.browser_state.selected()
+                            .and_then(|i| app.entries.get(i))
+                            .map(|e| e.is_folder)
+                            .unwrap_or(false);
+                        if on_folder { app.queue_folder_at_cursor(); }
+                        else { app.queue_selected(); }
+                    }
                 }
                 KeyCode::Char('x') => {
                     if app.active_pane == Pane::Queue && !app.queue_sel.is_empty() { app.remove_queue_sel(); }
@@ -896,6 +1003,41 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                     save_settings(&app.settings);
                     app.status_msg = if app.settings.queue_paused { "Queue paused".into() } else { "Queue started".into() };
                     if !app.settings.queue_paused { app.kick_downloads(); }
+                }
+
+                // Refresh — force re-fetch current folder from HTTP
+                KeyCode::Char('R') => {
+                    if app.active_pane == Pane::Browser {
+                        app.force_refresh = true;
+                        let path = app.current_path.clone();
+                        app.navigate(path);
+                        app.status_msg = "Refreshing from server…".into();
+                    }
+                }
+
+                // Concurrent downloads: + / -
+                KeyCode::Char('+') | KeyCode::Char('=') => {
+                    app.settings.concurrent = (app.settings.concurrent + 1).min(16);
+                    save_settings(&app.settings);
+                    let _ = app.dl_tx.send(DlCmd::SetConcurrent(app.settings.concurrent));
+                    app.status_msg = format!("Threads: {}", app.settings.concurrent);
+                }
+                KeyCode::Char('-') => {
+                    app.settings.concurrent = (app.settings.concurrent.saturating_sub(1)).max(1);
+                    save_settings(&app.settings);
+                    let _ = app.dl_tx.send(DlCmd::SetConcurrent(app.settings.concurrent));
+                    app.status_msg = format!("Threads: {}", app.settings.concurrent);
+                }
+                // Retries: [ / ]
+                KeyCode::Char(']') => {
+                    app.settings.max_retries = (app.settings.max_retries + 1).min(10);
+                    save_settings(&app.settings);
+                    app.status_msg = format!("Retries: {}", app.settings.max_retries);
+                }
+                KeyCode::Char('[') => {
+                    app.settings.max_retries = app.settings.max_retries.saturating_sub(1);
+                    save_settings(&app.settings);
+                    app.status_msg = format!("Retries: {}", app.settings.max_retries);
                 }
 
                 _ => {}
