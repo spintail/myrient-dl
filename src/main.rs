@@ -23,20 +23,65 @@ static CLIENT: Lazy<reqwest::blocking::Client> = Lazy::new(|| {
 });
 
 // ── Colours ───────────────────────────────────────────────────────────────────
-const C_BG:      Color32 = Color32::from_rgb(0x0d, 0x10, 0x14);
-const C_SURF:    Color32 = Color32::from_rgb(0x13, 0x18, 0x1f);
-const C_SURF2:   Color32 = Color32::from_rgb(0x18, 0x1e, 0x27);
-const C_BORDER:  Color32 = Color32::from_rgb(0x1f, 0x27, 0x33);
-const C_BORDER2: Color32 = Color32::from_rgb(0x2a, 0x34, 0x44);
-const C_ACC:     Color32 = Color32::from_rgb(0x3d, 0xe8, 0xa0);
-const C_WARN:    Color32 = Color32::from_rgb(0xe8, 0xa0, 0x3d);
-const C_ERR:     Color32 = Color32::from_rgb(0xe8, 0x50, 0x3d);
-const C_BLUE:    Color32 = Color32::from_rgb(0x5b, 0x9c, 0xf6);
-const C_TEXT:    Color32 = Color32::from_rgb(0xc8, 0xd4, 0xe3);
-const C_MUTED:   Color32 = Color32::from_rgb(0x4a, 0x5a, 0x72);
-const C_DIM:     Color32 = Color32::from_rgb(0x2a, 0x34, 0x44);
-const C_FILE:    Color32 = Color32::from_rgb(0xa0, 0xc8, 0xe8);
-const C_DOWNLOADED: Color32 = Color32::from_rgb(0x2a, 0x50, 0x3a); // muted green for downloaded files
+// Colours that are truly static (used in egui Visuals setup, not in draw methods)
+const C_WARN:     Color32 = Color32::from_rgb(0xe8, 0xa0, 0x3d);
+const C_ERR:      Color32 = Color32::from_rgb(0xe8, 0x50, 0x3d);
+// Dark-mode accent used in visuals setup and status methods (outside draw methods)
+const C_ACC_DARK: Color32 = Color32::from_rgb(0x3d, 0xe8, 0xa0);
+
+
+struct Palette {
+    bg:         Color32,
+    surf:       Color32,
+    surf2:      Color32,
+    border:     Color32,
+    border2:    Color32,
+    acc:        Color32,
+    blue:       Color32,
+    text:       Color32,
+    muted:      Color32,
+    dim:        Color32,
+    file:       Color32,
+    downloaded: Color32,
+}
+
+impl Palette {
+    fn dark() -> Self {
+        Self {
+            bg:         Color32::from_rgb(0x0d, 0x10, 0x14),
+            surf:       Color32::from_rgb(0x13, 0x18, 0x1f),
+            surf2:      Color32::from_rgb(0x18, 0x1e, 0x27),
+            border:     Color32::from_rgb(0x1f, 0x27, 0x33),
+            border2:    Color32::from_rgb(0x2a, 0x34, 0x44),
+            acc:        Color32::from_rgb(0x3d, 0xe8, 0xa0),
+            blue:       Color32::from_rgb(0x5b, 0x9c, 0xf6),
+            text:       Color32::from_rgb(0xc8, 0xd4, 0xe3),
+            muted:      Color32::from_rgb(0x4a, 0x5a, 0x72),
+            dim:        Color32::from_rgb(0x2a, 0x34, 0x44),
+            file:       Color32::from_rgb(0xa0, 0xc8, 0xe8),
+            downloaded: Color32::from_rgb(0x2a, 0x50, 0x3a),
+        }
+    }
+    fn light() -> Self {
+        Self {
+            // macOS-style: content areas white/near-white, heading panes slightly darker
+            bg:         Color32::from_rgb(0xfa, 0xfb, 0xfc), // content / scroll areas — near white
+            surf:       Color32::from_rgb(0xe2, 0xe4, 0xe7), // pane headers / toolbars — macOS chrome grey
+            surf2:      Color32::from_rgb(0xee, 0xef, 0xf2), // secondary surfaces / alternating rows
+            border:     Color32::from_rgb(0xc8, 0xcc, 0xd2), // standard border
+            border2:    Color32::from_rgb(0xb0, 0xb6, 0xc2), // stronger border
+            acc:        Color32::from_rgb(0x00, 0x7a, 0x4a), // green accent
+            blue:       Color32::from_rgb(0x00, 0x58, 0xc0), // blue
+            text:       Color32::from_rgb(0x14, 0x1c, 0x28), // near-black text
+            muted:      Color32::from_rgb(0x58, 0x68, 0x80), // secondary text
+            dim:        Color32::from_rgb(0xa8, 0xb2, 0xc4), // placeholder / disabled
+            file:       Color32::from_rgb(0x00, 0x48, 0xa0), // file links
+            downloaded: Color32::from_rgb(0x00, 0x68, 0x38), // downloaded indicator
+        }
+    }
+}
+
+
 
 // ── Semaphore ─────────────────────────────────────────────────────────────────
 struct Semaphore { count: Mutex<usize>, cvar: Condvar }
@@ -89,12 +134,12 @@ impl JobStatus {
     }
     fn color(&self) -> Color32 {
         match self {
-            Self::Waiting     => C_MUTED,
-            Self::Spooling    => C_BLUE,
+            Self::Waiting     => Color32::from_rgb(0x4a, 0x5a, 0x72),
+            Self::Spooling    => Color32::from_rgb(0x5b, 0x9c, 0xf6),
             Self::Downloading => C_WARN,
-            Self::Paused      => C_BLUE,
-            Self::Verifying   => C_BLUE,
-            Self::Done        => C_ACC,
+            Self::Paused      => Color32::from_rgb(0x5b, 0x9c, 0xf6),
+            Self::Verifying   => Color32::from_rgb(0x5b, 0x9c, 0xf6),
+            Self::Done        => C_ACC_DARK,
             Self::Error(_)    => C_ERR,
         }
     }
@@ -528,14 +573,14 @@ fn mono(text: impl Into<String>, size: f32, color: Color32) -> RichText {
     RichText::new(text).font(FontId::monospace(size)).color(color)
 }
 
-fn hline(ui: &mut egui::Ui) {
+fn hline(ui: &mut egui::Ui, color: Color32) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), 1.0), egui::Sense::hover());
-    ui.painter().rect_filled(r, 0.0, C_BORDER);
+    ui.painter().rect_filled(r, 0.0, color);
 }
 
-fn vsep(ui: &mut egui::Ui) {
+fn vsep(ui: &mut egui::Ui, color: Color32) {
     let (r, _) = ui.allocate_exact_size(Vec2::new(1.0, 24.0), egui::Sense::hover());
-    ui.painter().rect_filled(r, 0.0, C_BORDER);
+    ui.painter().rect_filled(r, 0.0, color);
 }
 
 fn panel_frame(fill: Color32) -> egui::Frame { egui::Frame::none().fill(fill) }
@@ -965,23 +1010,40 @@ struct App {
     search_include:       String,
     search_exclude:       String,
     // Cached search results — only recomputed when query/filters change
-    search_results_cache: Vec<(String, String, String, u64)>,
+    search_results_cache: Vec<(String, String, String, u64, String)>,  // (name, folder_decoded, raw_full_path, size, raw_folder)
+    search_selected:      HashSet<String>,  // full_path keys of selected search results
     search_last_query:    String,
     search_last_include:  String,
     search_last_exclude:  String,
     search_top_folders:   Vec<String>,
     search_highlight:     Option<String>,
-    os_prefers_dark:      bool,  // sampled once at startup from egui default visuals
+    scroll_to_highlight:  u8,   // countdown: set to 2 when highlight arrives, apply while >0
+    highlight_url:        Option<String>,  // URL of the entry to scroll to
+    os_light:            bool,   // cached OS dark/light preference
+    os_theme_last_check: f64,    // egui time of last dark_light::detect() call
+    pal:                 Palette,       // current theme palette, updated each frame
     // Panel sizing (fraction or pixels)
     browser_frac:         f32,   // browser width as fraction of central panel
     dl_panel_h:           f32,   // active downloads panel height in px
 }
 
 impl App {
+    fn palette(&self) -> Palette {
+        let light = if self.settings.auto_theme {
+            self.os_light
+        } else {
+            self.settings.light_mode
+        };
+        if light { Palette::light() } else { Palette::dark() }
+    }
+
+    /// Returns a palette with colours animated toward the target theme.
+    /// Call with a Context to get smooth transitions; falls back to palette() without one.
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let settings = load_settings();
+        let os_light = dark_light::detect() == dark_light::Mode::Light;
         if settings.auto_theme {
-            apply_theme(&cc.egui_ctx, !app.os_prefers_dark);
+            apply_theme(&cc.egui_ctx, os_light);
         } else {
             apply_theme(&cc.egui_ctx, settings.light_mode);
         }
@@ -1033,12 +1095,17 @@ impl App {
             search_include: String::new(),
             search_exclude: String::new(),
             search_results_cache: Vec::new(),
+            search_selected:      HashSet::new(),
             search_last_query:   String::new(),
             search_last_include: String::new(),
             search_last_exclude: String::new(),
             search_top_folders:  Vec::new(),
             search_highlight:    None,
-            os_prefers_dark:     cc.egui_ctx.style().visuals.dark_mode,
+            scroll_to_highlight: 0,
+            highlight_url:       None,
+            os_light,
+            os_theme_last_check: 0.0,
+            pal:                 Palette::dark(),
             browser_frac:  0.62,
             dl_panel_h:    30.0 + 62.0 * 3.0,
         };
@@ -1111,10 +1178,14 @@ impl App {
                             if !entry.is_folder && entry.name.to_lowercase() == highlight.to_lowercase() {
                                 if let Some(ref url) = entry.url {
                                     self.selected_urls.insert(url.to_string());
+                                    self.scroll_to_highlight = 2;
+                                    self.highlight_url = Some(url.to_string());
                                 }
                             }
                         }
                         self.search_highlight = None;
+                        // Override pending_scroll_restore so we scroll to the file, not saved pos
+                        self.pending_scroll_restore = false;
                     }
                 }
                 Err(e) => { self.load_error = Some(e.clone()); self.status_msg = format!("Error: {}", e); }
@@ -1291,45 +1362,53 @@ impl App {
 // ── egui visuals & fonts ──────────────────────────────────────────────────────
 fn dark_visuals() -> egui::Visuals {
     let mut v = egui::Visuals::dark();
-    v.panel_fill       = C_BG;   v.window_fill      = C_SURF;
-    v.faint_bg_color   = C_SURF2; v.extreme_bg_color = C_BORDER;
-    v.window_stroke    = Stroke::new(1.0, C_BORDER);
-    v.widgets.noninteractive.bg_fill   = C_SURF;
-    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, C_BORDER);
-    v.widgets.inactive.bg_fill         = C_SURF2;
-    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, C_BORDER2);
+    v.panel_fill       = Color32::from_rgb(0x0d, 0x10, 0x14);   v.window_fill      = Color32::from_rgb(0x13, 0x18, 0x1f);
+    v.faint_bg_color   = Color32::from_rgb(0x18, 0x1e, 0x27); v.extreme_bg_color = Color32::from_rgb(0x1f, 0x27, 0x33);
+    v.window_stroke    = Stroke::new(1.0, Color32::from_rgb(0x1f, 0x27, 0x33));
+    v.widgets.noninteractive.bg_fill   = Color32::from_rgb(0x13, 0x18, 0x1f);
+    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0x1f, 0x27, 0x33));
+    v.widgets.inactive.bg_fill         = Color32::from_rgb(0x18, 0x1e, 0x27);
+    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, Color32::from_rgb(0x2a, 0x34, 0x44));
     v.widgets.hovered.bg_fill          = Color32::from_rgb(0x20, 0x28, 0x35);
-    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, C_BORDER2);
+    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, Color32::from_rgb(0x2a, 0x34, 0x44));
     v.widgets.active.bg_fill           = Color32::from_rgb(0x1a, 0x22, 0x2c);
-    v.widgets.active.bg_stroke         = Stroke::new(1.0, C_ACC);
+    v.widgets.active.bg_stroke         = Stroke::new(1.0, C_ACC_DARK);
     v.selection.bg_fill                = Color32::from_rgb(0x1e, 0x3a, 0x2f);
-    v.selection.stroke                 = Stroke::new(1.0, C_ACC);
-    v.override_text_color              = Some(C_TEXT);
-    v.hyperlink_color                  = C_ACC;
+    v.selection.stroke                 = Stroke::new(1.0, C_ACC_DARK);
+    v.override_text_color              = Some(Color32::from_rgb(0xc8, 0xd4, 0xe3));
+    v.hyperlink_color                  = C_ACC_DARK;
     v.warn_fg_color = C_WARN; v.error_fg_color = C_ERR;
     v
 }
 
 fn light_visuals() -> egui::Visuals {
     let mut v = egui::Visuals::light();
-    v.panel_fill       = Color32::from_rgb(0xf2, 0xf4, 0xf6);
-    v.window_fill      = Color32::from_rgb(0xff, 0xff, 0xff);
-    v.faint_bg_color   = Color32::from_rgb(0xe8, 0xec, 0xf0);
-    v.extreme_bg_color = Color32::from_rgb(0xd8, 0xde, 0xe4);
-    v.window_stroke    = Stroke::new(1.0, Color32::from_rgb(0xcc, 0xd2, 0xd8));
-    v.widgets.noninteractive.bg_fill   = Color32::from_rgb(0xf8, 0xf9, 0xfa);
-    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0xcc, 0xd2, 0xd8));
-    v.widgets.inactive.bg_fill         = Color32::from_rgb(0xee, 0xf1, 0xf4);
-    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, Color32::from_rgb(0xc0, 0xc8, 0xd0));
-    v.widgets.hovered.bg_fill          = Color32::from_rgb(0xe0, 0xe8, 0xf0);
-    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
-    v.widgets.active.bg_fill           = Color32::from_rgb(0xd4, 0xf0, 0xe4);
-    v.widgets.active.bg_stroke         = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
-    v.selection.bg_fill                = Color32::from_rgb(0xc8, 0xf0, 0xdc);
-    v.selection.stroke                 = Stroke::new(1.0, Color32::from_rgb(0x3d, 0xe8, 0xa0));
-    v.override_text_color              = Some(Color32::from_rgb(0x1a, 0x24, 0x30));
-    v.hyperlink_color                  = Color32::from_rgb(0x00, 0x7a, 0x50);
-    v.warn_fg_color = C_WARN; v.error_fg_color = C_ERR;
+    // Backgrounds — clean white/light-grey
+    v.panel_fill            = Color32::from_rgb(0xfa, 0xfb, 0xfc);
+    v.window_fill           = Color32::from_rgb(0xe2, 0xe4, 0xe7);
+    v.faint_bg_color        = Color32::from_rgb(0xf0, 0xf1, 0xf3);
+    v.extreme_bg_color      = Color32::from_rgb(0xff, 0xff, 0xff);
+    v.window_stroke         = Stroke::new(1.0, Color32::from_rgb(0xcc, 0xd0, 0xd6));
+    // Widgets
+    v.widgets.noninteractive.bg_fill   = Color32::from_rgb(0xf0, 0xf1, 0xf3);
+    v.widgets.noninteractive.bg_stroke = Stroke::new(1.0, Color32::from_rgb(0xd0, 0xd4, 0xda));
+    v.widgets.noninteractive.fg_stroke = Stroke::new(1.0, Color32::from_rgb(0x50, 0x58, 0x65));
+    v.widgets.inactive.bg_fill         = Color32::from_rgb(0xe8, 0xea, 0xed);
+    v.widgets.inactive.bg_stroke       = Stroke::new(1.0, Color32::from_rgb(0xc0, 0xc5, 0xcc));
+    v.widgets.inactive.fg_stroke       = Stroke::new(1.0, Color32::from_rgb(0x40, 0x48, 0x55));
+    v.widgets.hovered.bg_fill          = Color32::from_rgb(0xdd, 0xe8, 0xf5);
+    v.widgets.hovered.bg_stroke        = Stroke::new(1.0, Color32::from_rgb(0x2a, 0xc0, 0x78));
+    v.widgets.hovered.fg_stroke        = Stroke::new(1.5, Color32::from_rgb(0x10, 0x18, 0x22));
+    v.widgets.active.bg_fill           = Color32::from_rgb(0xc8, 0xf0, 0xdc);
+    v.widgets.active.bg_stroke         = Stroke::new(1.0, Color32::from_rgb(0x2a, 0xc0, 0x78));
+    v.widgets.active.fg_stroke         = Stroke::new(1.5, Color32::from_rgb(0x10, 0x18, 0x22));
+    v.selection.bg_fill                = Color32::from_rgb(0xb8, 0xee, 0xd0);
+    v.selection.stroke                 = Stroke::new(1.0, Color32::from_rgb(0x2a, 0xc0, 0x78));
+    // Text — near-black on light backgrounds
+    v.override_text_color   = Some(Color32::from_rgb(0x18, 0x20, 0x2c));
+    v.hyperlink_color       = Color32::from_rgb(0x00, 0x88, 0x55);
+    v.warn_fg_color         = Color32::from_rgb(0xb8, 0x60, 0x00);
+    v.error_fg_color        = Color32::from_rgb(0xc0, 0x20, 0x20);
     v
 }
 
@@ -1368,6 +1447,8 @@ fn setup_fonts(ctx: &egui::Context) {
 // ── eframe::App ───────────────────────────────────────────────────────────────
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Update palette each frame so theme changes take effect immediately
+        self.pal = self.palette();
         self.poll();
 
         // Snapshot only what's needed for rendering — avoid cloning the full queue
@@ -1388,9 +1469,19 @@ impl eframe::App for App {
         if self.loading || active_dl > 0 || has_spooling || has_waiting {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
-        // Apply OS theme continuously when auto_theme is enabled
+        // When auto_theme is enabled, re-check OS preference every 5s and apply if changed
         if self.settings.auto_theme {
-            apply_theme(ctx, !self.os_prefers_dark);
+            let now = ctx.input(|i| i.time);
+            if now - self.os_theme_last_check > 5.0 {
+                self.os_theme_last_check = now;
+                let light = dark_light::detect() == dark_light::Mode::Light;
+                if light != self.os_light {
+                    self.os_light = light;
+                    apply_theme(ctx, light);
+                    self.pal = self.palette();
+                }
+            }
+            ctx.request_repaint_after(Duration::from_secs(5));
         }
 
         if self.status_active && active_dl == 0 {
@@ -1430,15 +1521,15 @@ impl eframe::App for App {
 
 
         egui::TopBottomPanel::top("toolbar")
-            .frame(panel_frame(C_SURF))
+            .frame(panel_frame(self.pal.surf))
             .exact_height(44.0)
             .show(ctx, |ui: &mut egui::Ui| {
                 ui.add_space(4.0);
                 ui.horizontal(|ui: &mut egui::Ui| {
                     ui.add_space(10.0);
                     ui.label(RichText::new("myrient-dl")
-                        .font(FontId::monospace(14.0)).color(C_ACC).strong());
-                    ui.add_space(10.0); vsep(ui); ui.add_space(10.0);
+                        .font(FontId::monospace(14.0)).color(self.pal.acc).strong());
+                    ui.add_space(10.0); vsep(ui, self.pal.border); ui.add_space(10.0);
 
                     // Right-side controls first so dest field gets what's left
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
@@ -1449,22 +1540,26 @@ impl eframe::App for App {
                         let light = self.settings.light_mode;
                         // Auto-theme checkbox
                         let mut auto_val = auto;
-                        let auto_resp = ui.checkbox(&mut auto_val, mono("auto", 9.0, C_MUTED));
+                        let auto_resp = ui.checkbox(&mut auto_val, mono("auto", 9.0, self.pal.muted));
                         if auto_resp.changed() {
                             self.settings.auto_theme = auto_val;
                             self.settings_dirty = true;
-                            if !auto_val {
+                            if auto_val {
+                                // Switching to auto — apply OS preference immediately
+                                apply_theme(ctx, self.os_light);
+                            } else {
+                                // Switching off auto — revert to manual light_mode setting
                                 apply_theme(ctx, light);
                             }
                         }
                         ui.add_space(4.0);
                         // Light/dark toggle button
-                        let (label, col) = if light { ("light", C_ACC) } else { ("dark", C_MUTED) };
+                        let (label, col) = if light { ("light", self.pal.acc) } else { ("dark", self.pal.muted) };
                         let btn = ui.add_enabled(
                             !auto,
                             egui::Button::new(mono(label, 9.0, col))
                                 .fill(Color32::TRANSPARENT)
-                                .stroke(Stroke::new(0.5, C_BORDER2))
+                                .stroke(Stroke::new(0.5, self.pal.border2))
                                 .min_size(Vec2::new(38.0, 20.0))
                         );
                         if btn.on_hover_text("Toggle light/dark theme").clicked() {
@@ -1472,14 +1567,14 @@ impl eframe::App for App {
                             self.settings_dirty = true;
                             apply_theme(ctx, !light);
                         }
-                        ui.add_space(6.0); vsep(ui); ui.add_space(6.0);
+                        ui.add_space(6.0); vsep(ui, self.pal.border); ui.add_space(6.0);
 
-                        ui.label(mono("Verify", 9.0, C_MUTED));
+                        ui.label(mono("Verify", 9.0, self.pal.muted));
                         ui.add_space(4.0);
                         let ver_resp = ui.checkbox(&mut self.settings.verify_checksums, "");
                         if ver_resp.changed() { self.settings_dirty = true; }
 
-                        ui.add_space(6.0); vsep(ui); ui.add_space(6.0);
+                        ui.add_space(6.0); vsep(ui, self.pal.border); ui.add_space(6.0);
                         ui.scope(|ui| {
                             ui.spacing_mut().slider_width = 50.0;
                             let ret_resp = ui.add(
@@ -1489,9 +1584,9 @@ impl eframe::App for App {
                             if ret_resp.changed() { self.settings_dirty = true; }
                         });
                         ui.add_space(4.0);
-                        ui.label(mono("RETRIES", 9.0, C_MUTED));
+                        ui.label(mono("RETRIES", 9.0, self.pal.muted));
 
-                        ui.add_space(6.0); vsep(ui); ui.add_space(6.0);
+                        ui.add_space(6.0); vsep(ui, self.pal.border); ui.add_space(6.0);
                         ui.scope(|ui| {
                             ui.spacing_mut().slider_width = 60.0;
                             let conc_resp = ui.add(
@@ -1504,15 +1599,15 @@ impl eframe::App for App {
                             }
                         });
                         ui.add_space(4.0);
-                        ui.label(mono("THREADS", 9.0, C_MUTED));
+                        ui.label(mono("THREADS", 9.0, self.pal.muted));
 
-                        ui.add_space(6.0); vsep(ui); ui.add_space(6.0);
+                        ui.add_space(6.0); vsep(ui, self.pal.border); ui.add_space(6.0);
 
                         // Dest field fills whatever is left
                         let dest_w = (ui.available_width() - 50.0).max(80.0);
                         if ui.add(
-                            egui::Button::new(mono("[ ]", 10.0, C_MUTED))
-                                .fill(C_SURF2).stroke(Stroke::new(1.0, C_BORDER2))
+                            egui::Button::new(mono("[ ]", 10.0, self.pal.muted))
+                                .fill(self.pal.surf2).stroke(Stroke::new(1.0, self.pal.border2))
                                 .min_size(Vec2::new(26.0, 22.0))
                         ).on_hover_text("Browse for folder").clicked() {
                             let tx = self.folder_pick_tx.clone();
@@ -1522,13 +1617,13 @@ impl eframe::App for App {
                             });
                         }
                         ui.add_space(4.0);
-                        ui.label(mono("DEST", 9.0, C_MUTED));
+                        ui.label(mono("DEST", 9.0, self.pal.muted));
                         ui.add_space(4.0);
                         let dest_resp = ui.add(
                             egui::TextEdit::singleline(&mut self.settings.dest_path)
                                 .font(FontId::monospace(12.0))
                                 .desired_width(dest_w)
-                                .text_color(C_TEXT)
+                                .text_color(self.pal.text)
                         );
                         if dest_resp.changed() { self.settings_dirty = true; }
                     });
@@ -1537,13 +1632,13 @@ impl eframe::App for App {
 
         egui::TopBottomPanel::top("donate_bar")
             .frame(egui::Frame::none()
-                .fill(C_BG)
+                .fill(self.pal.bg)
                 .inner_margin(egui::Margin::symmetric(14.0, 4.0)))
             .exact_height(22.0)
             .show(ctx, |ui: &mut egui::Ui| {
                 ui.horizontal(|ui: &mut egui::Ui| {
-                    ui.label(mono("♥  Myrient is a free community resource — ", 9.5, C_ACC));
-                    ui.hyperlink_to(mono("consider donating", 9.5, C_ACC), DONATE_URL);
+                    ui.label(mono("♥  Myrient is a free community resource — ", 9.5, self.pal.acc));
+                    ui.hyperlink_to(mono("consider donating", 9.5, self.pal.acc), DONATE_URL);
                 });
             });
 
@@ -1555,7 +1650,7 @@ impl eframe::App for App {
         let row_h = 62.0;
 
         egui::TopBottomPanel::bottom("active_dl_bottom")
-            .frame(panel_frame(C_SURF))
+            .frame(panel_frame(self.pal.surf))
             .resizable(true)
             .min_height(30.0 + row_h)
             .max_height(30.0 + row_h * 8.0)
@@ -1563,43 +1658,43 @@ impl eframe::App for App {
             .show(ctx, |ui: &mut egui::Ui| {
                 self.dl_panel_h = ui.available_height() + 4.0; // keep in sync for save
                 // Header bar — always shown
-                egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(12.0, 4.0))
+                egui::Frame::none().fill(self.pal.surf2).inner_margin(egui::Margin::symmetric(12.0, 4.0))
                     .show(ui, |ui: &mut egui::Ui| {
                         ui.horizontal(|ui: &mut egui::Ui| {
-                            let dot_col = if self.status_active { C_ACC } else { C_DIM };
+                            let dot_col = if self.status_active { self.pal.acc } else { self.pal.dim };
                             ui.label(mono("●", 8.0, dot_col));
                             ui.add_space(6.0);
                             if active_jobs.is_empty() {
-                                ui.label(mono("No active downloads", 9.0, C_MUTED));
+                                ui.label(mono("No active downloads", 9.0, self.pal.muted));
                             } else {
                                 let total_bps: f64 = active_jobs.iter()
                                     .filter_map(|j| prog_snap.get(&j.id))
                                     .map(|p| p.speed_bps)
                                     .sum();
-                                ui.label(mono("DOWNLOADING", 9.0, C_MUTED));
+                                ui.label(mono("DOWNLOADING", 9.0, self.pal.muted));
                                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
-                                    ui.label(mono(format!("{}/{} slots", active_dl, self.settings.concurrent), 9.0, C_MUTED));
+                                    ui.label(mono(format!("{}/{} slots", active_dl, self.settings.concurrent), 9.0, self.pal.muted));
                                     if total_bps > 0.0 {
-                                        ui.add_space(10.0); vsep(ui); ui.add_space(10.0);
-                                        ui.label(mono(format!("↓ {}", fmt_speed(total_bps)), 9.0, C_ACC));
+                                        ui.add_space(10.0); vsep(ui, self.pal.border); ui.add_space(10.0);
+                                        ui.label(mono(format!("↓ {}", fmt_speed(total_bps)), 9.0, self.pal.acc));
                                     }
                                 });
                             }
                         });
                     });
-                hline(ui);
+                hline(ui, self.pal.border);
                 egui::ScrollArea::vertical().id_source("act_scroll").auto_shrink([false;2])
                     .show(ui, |ui: &mut egui::Ui| {
                         let w = ui.available_width();
                         if active_jobs.is_empty() {
                             ui.add_space(row_h * 2.0);
                             ui.vertical_centered(|ui: &mut egui::Ui| {
-                                ui.label(mono("No active downloads", 11.0, C_DIM));
+                                ui.label(mono("No active downloads", 11.0, self.pal.dim));
                             });
                         } else {
                             for job in &active_jobs {
                                 let prog = prog_snap.get(&job.id).cloned().unwrap_or_default();
-                                self.draw_active_row(ui, job, &prog, w, row_h, ctx, C_ACC);
+                                self.draw_active_row(ui, job, &prog, w, row_h, ctx, self.pal.acc);
                             }
                         }
                     });
@@ -1613,15 +1708,15 @@ impl eframe::App for App {
             .min_width(240.0)
             .max_width(1200.0)
             .exact_width(browser_w)
-            .frame(egui::Frame::none().fill(C_BG)
-                .stroke(Stroke::new(0.0, C_BG)))
+            .frame(egui::Frame::none().fill(self.pal.bg)
+                .stroke(Stroke::new(0.0, self.pal.bg)))
             .show(ctx, |ui: &mut egui::Ui| {
                 self.browser_frac = (ui.available_width() / ctx.screen_rect().width()).clamp(0.2, 0.85);
                 self.draw_browser(ui);
             });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().fill(C_BG))
+            .frame(egui::Frame::none().fill(self.pal.bg))
             .show(ctx, |ui: &mut egui::Ui| {
                 self.draw_queue(ui, &queue_snap, active_dl);
             });
@@ -1634,7 +1729,7 @@ impl App {
                         avail_w: f32, row_h: f32, ctx: &egui::Context, bar_color: Color32) {
         let (row_rect, _) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::hover());
         ui.painter().line_segment([row_rect.left_bottom(), row_rect.right_bottom()],
-            Stroke::new(1.0, C_BORDER));
+            Stroke::new(1.0, self.pal.border));
 
         let pad   = 12.0;
         let btn_w = 60.0;
@@ -1648,12 +1743,12 @@ impl App {
 
         // Name
         let name_rect = egui::Rect::from_min_size(egui::pos2(bar_x, name_y), Vec2::new(content_w, 14.0));
-        let ng = ui.painter().layout_no_wrap(job.name.clone(), FontId::monospace(11.0), C_TEXT);
-        ui.painter().with_clip_rect(name_rect).galley(egui::pos2(bar_x, name_y), ng, C_TEXT);
+        let ng = ui.painter().layout_no_wrap(job.name.clone(), FontId::monospace(11.0), self.pal.text);
+        ui.painter().with_clip_rect(name_rect).galley(egui::pos2(bar_x, name_y), ng, self.pal.text);
 
         // Bar background
         let bar_rect = egui::Rect::from_min_size(egui::pos2(bar_x, bar_y), Vec2::new(content_w, bar_h));
-        ui.painter().rect_filled(bar_rect, 2.0, C_BORDER2);
+        ui.painter().rect_filled(bar_rect, 2.0, self.pal.border2);
 
         let is_spooling = prog.spool_start.is_some() || prog.percent == 0.0;
         if is_spooling {
@@ -1665,10 +1760,10 @@ impl App {
             if fw > 0.0 {
                 ui.painter().rect_filled(
                     egui::Rect::from_min_size(egui::pos2(fx, bar_y), Vec2::new(fw, bar_h)),
-                    2.0, Color32::from_rgba_premultiplied(C_BLUE.r(), C_BLUE.g(), C_BLUE.b(), 180));
+                    2.0, Color32::from_rgba_premultiplied(self.pal.blue.r(), self.pal.blue.g(), self.pal.blue.b(), 180));
             }
             ui.painter().text(egui::pos2(bar_x, meta_y + bar_h), egui::Align2::LEFT_TOP,
-                "spooling…", FontId::monospace(9.0), C_MUTED);
+                "spooling…", FontId::monospace(9.0), self.pal.muted);
         } else {
             let filled = (content_w * prog.percent / 100.0).clamp(0.0, content_w);
             ui.painter().rect_filled(
@@ -1679,14 +1774,14 @@ impl App {
             if let Some(v) = job.verified {
                 let vx = bar_x + content_w - 14.0;
                 ui.painter().text(egui::pos2(vx, bar_y - 1.0), egui::Align2::LEFT_TOP,
-                    if v {"✓"} else {"⚠"}, FontId::monospace(9.0), if v {C_ACC} else {C_WARN});
+                    if v {"✓"} else {"⚠"}, FontId::monospace(9.0), if v {self.pal.acc} else {C_WARN});
             }
 
             let speed_str = if prog.speed_bps > 0.0 { fmt_speed(prog.speed_bps) } else { "…".into() };
             let eta_str   = prog.eta_secs.map(fmt_eta).unwrap_or_else(|| "…".into());
             let meta = format!("{}%  {}  ETA {}", prog.percent as u32, speed_str, eta_str);
             ui.painter().text(egui::pos2(bar_x, meta_y + bar_h), egui::Align2::LEFT_TOP,
-                meta, FontId::monospace(9.0), C_MUTED);
+                meta, FontId::monospace(9.0), self.pal.muted);
         }
 
         // Pause button — fixed right side, no overlap
@@ -1694,10 +1789,10 @@ impl App {
         let btn_rect = egui::Rect::from_center_size(
             egui::pos2(btn_cx, row_rect.center().y), Vec2::new(btn_w - 4.0, 20.0));
         let btn_resp = ui.allocate_rect(btn_rect, egui::Sense::click());
-        ui.painter().rect_filled(btn_rect, 2.0, C_SURF2);
-        ui.painter().rect_stroke(btn_rect, 2.0, Stroke::new(1.0, C_BORDER2));
+        ui.painter().rect_filled(btn_rect, 2.0, self.pal.surf2);
+        ui.painter().rect_stroke(btn_rect, 2.0, Stroke::new(1.0, self.pal.border2));
         ui.painter().text(btn_rect.center(), egui::Align2::CENTER_CENTER, "⏸ pause",
-            FontId::monospace(9.5), if btn_resp.hovered() { C_WARN } else { C_MUTED });
+            FontId::monospace(9.5), if btn_resp.hovered() { C_WARN } else { self.pal.muted });
 
         if btn_resp.clicked() {
             let _ = self.dl_tx.send(DlCmd::Cancel(job.id.clone()));
@@ -1714,29 +1809,29 @@ impl App {
     fn draw_browser(&mut self, ui: &mut egui::Ui) {
         ui.vertical(|ui: &mut egui::Ui| {
             // Tab bar: Browse | Search
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 4.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0, 4.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.horizontal(|ui: &mut egui::Ui| {
                         let browse_active = self.browser_tab == BrowserTab::Browse;
                         let search_active = self.browser_tab == BrowserTab::Search;
                         if ui.add(egui::Button::new(mono("BROWSE", 9.5,
-                            if browse_active { C_TEXT } else { C_MUTED }))
-                            .fill(if browse_active { C_SURF2 } else { Color32::TRANSPARENT })
-                            .stroke(if browse_active { Stroke::new(1.0, C_BORDER2) } else { Stroke::NONE })
+                            if browse_active { self.pal.text } else { self.pal.muted }))
+                            .fill(if browse_active { self.pal.surf2 } else { Color32::TRANSPARENT })
+                            .stroke(if browse_active { Stroke::new(1.0, self.pal.border2) } else { Stroke::NONE })
                             .min_size(Vec2::new(60.0, 20.0))
                         ).clicked() { self.browser_tab = BrowserTab::Browse; }
                         ui.add_space(4.0);
                         let lbl = if !self.search_query.is_empty() {
-                            mono(format!("SEARCH  ·  {}", &self.search_query[..self.search_query.len().min(20)]), 9.5, C_ACC)
-                        } else { mono("SEARCH", 9.5, if search_active { C_TEXT } else { C_MUTED }) };
+                            mono(format!("SEARCH  ·  {}", &self.search_query[..self.search_query.len().min(20)]), 9.5, self.pal.acc)
+                        } else { mono("SEARCH", 9.5, if search_active { self.pal.text } else { self.pal.muted }) };
                         if ui.add(egui::Button::new(lbl)
-                            .fill(if search_active { C_SURF2 } else { Color32::TRANSPARENT })
-                            .stroke(if search_active { Stroke::new(1.0, C_BORDER2) } else { Stroke::NONE })
+                            .fill(if search_active { self.pal.surf2 } else { Color32::TRANSPARENT })
+                            .stroke(if search_active { Stroke::new(1.0, self.pal.border2) } else { Stroke::NONE })
                             .min_size(Vec2::new(60.0, 20.0))
                         ).clicked() { self.browser_tab = BrowserTab::Search; }
                     });
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
             match self.browser_tab {
                 BrowserTab::Search => { self.draw_search_tab(ui); return; }
@@ -1744,23 +1839,23 @@ impl App {
             }
 
             // ── Breadcrumb bar ──
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 5.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0, 5.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(26.0);
                     ui.horizontal(|ui: &mut egui::Ui| {
                         ui.horizontal_wrapped(|ui: &mut egui::Ui| {
                             let is_root = self.crumb_stack.is_empty();
                             if ui.add(egui::Button::new(
-                                mono("/files/", 11.0, if is_root {C_TEXT} else {C_BLUE})).frame(false)
+                                mono("/files/", 11.0, if is_root {self.pal.text} else {self.pal.blue})).frame(false)
                             ).clicked() && !is_root {
                                 self.crumb_stack.clear(); self.navigate(String::new());
                             }
                             let stack = self.crumb_stack.clone();
                             for (i, (label, path)) in stack.iter().enumerate() {
-                                ui.label(mono("›", 12.0, C_DIM));
+                                ui.label(mono("›", 12.0, self.pal.dim));
                                 let is_tail = i == stack.len() - 1;
                                 if ui.add(egui::Button::new(
-                                    mono(label, 11.0, if is_tail {C_TEXT} else {C_BLUE})).frame(false)
+                                    mono(label, 11.0, if is_tail {self.pal.text} else {self.pal.blue})).frame(false)
                                 ).clicked() && !is_tail {
                                     self.crumb_stack.truncate(i+1);
                                     self.navigate(path.clone());
@@ -1771,21 +1866,21 @@ impl App {
                         // Directory info right-aligned in breadcrumb bar
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
                             if !self.status_msg.is_empty() && !self.loading {
-                                ui.label(mono(&self.status_msg, 9.0, C_MUTED));
+                                ui.label(mono(&self.status_msg, 9.0, self.pal.muted));
                             } else if self.loading {
-                                ui.label(mono("fetching…", 9.0, C_DIM));
+                                ui.label(mono("fetching…", 9.0, self.pal.dim));
                             }
                         });
                     });
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
             // Filter + select all bar
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 5.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0, 5.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(28.0);
                     ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.label(mono("filter", 9.0, C_MUTED));
+                        ui.label(mono("filter", 9.0, self.pal.muted));
                         ui.add_space(4.0);
 
                         // Right-side buttons first so filter field gets remaining space
@@ -1803,7 +1898,7 @@ impl App {
                                     (f, d) => format!("+ Add {} file{} + {} folder{}", f, if f==1{""} else {"s"}, d, if d==1{""} else {"s"}),
                                 };
                                 if ui.add(egui::Button::new(mono(&btn_label, 9.0, Color32::from_rgb(0x04,0x0a,0x08)))
-                                    .fill(C_ACC)
+                                    .fill(self.pal.acc)
                                     .stroke(Stroke::NONE)
                                     .min_size(Vec2::new(120.0, 18.0))
                                 ).clicked() {
@@ -1860,9 +1955,9 @@ impl App {
                             }
                             // Always show deselect / select all
                             let has_sel = !self.selected_urls.is_empty() || !self.folder_selected.is_empty();
-                            if ui.add(egui::Button::new(mono(if has_sel { "deselect" } else { "select all" }, 9.0, C_MUTED))
+                            if ui.add(egui::Button::new(mono(if has_sel { "deselect" } else { "select all" }, 9.0, self.pal.muted))
                                 .fill(Color32::TRANSPARENT)
-                                .stroke(Stroke::new(0.5, C_BORDER2))
+                                .stroke(Stroke::new(0.5, self.pal.border2))
                                 .min_size(Vec2::new(64.0, 18.0))
                             ).clicked() {
                                 if has_sel {
@@ -1892,7 +1987,7 @@ impl App {
                                         .font(FontId::monospace(12.0))
                                         .desired_width(filter_w)
                                         .hint_text("type to filter…")
-                                        .text_color(C_TEXT)
+                                        .text_color(self.pal.text)
                                 );
                                 if resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                                     self.filter_query.clear();
@@ -1907,9 +2002,9 @@ impl App {
                                         (d, 0) => format!("{} folder{}", d, if d==1{""} else {"s"}),
                                         (d, f) => format!("{}f {}d", f, d),
                                     };
-                                    ui.label(mono(label, 9.0, C_MUTED));
+                                    ui.label(mono(label, 9.0, self.pal.muted));
                                     ui.add_space(2.0);
-                                    if ui.add(egui::Button::new(mono("x", 10.0, C_MUTED)).frame(false)
+                                    if ui.add(egui::Button::new(mono("x", 10.0, self.pal.muted)).frame(false)
                                         .min_size(Vec2::new(14.0, 14.0))).clicked() {
                                         self.filter_query.clear();
                                     }
@@ -1918,7 +2013,7 @@ impl App {
                         });
                     });
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
             // Column headers — clean, no overlap
             let avail_w   = ui.available_width();
@@ -1930,18 +2025,18 @@ impl App {
             let size_x    = fixed_l + name_w;
             let date_x    = size_x + size_w;
 
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(0.0, 3.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(0.0, 3.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(20.0);
                     let (r, _) = ui.allocate_exact_size(Vec2::new(avail_w, 16.0), egui::Sense::hover());
                     ui.painter().text(egui::pos2(r.min.x + fixed_l, r.center().y),
-                        egui::Align2::LEFT_CENTER, "NAME", FontId::monospace(9.0), C_DIM);
+                        egui::Align2::LEFT_CENTER, "NAME", FontId::monospace(9.0), self.pal.dim);
                     ui.painter().text(egui::pos2(r.min.x + size_x + size_w - 4.0, r.center().y),
-                        egui::Align2::RIGHT_CENTER, "SIZE", FontId::monospace(9.0), C_DIM);
+                        egui::Align2::RIGHT_CENTER, "SIZE", FontId::monospace(9.0), self.pal.dim);
                     ui.painter().text(egui::pos2(r.min.x + date_x + date_w - 4.0, r.center().y),
-                        egui::Align2::RIGHT_CENTER, "MODIFIED", FontId::monospace(9.0), C_DIM);
+                        egui::Align2::RIGHT_CENTER, "MODIFIED", FontId::monospace(9.0), self.pal.dim);
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
             // Apply filter: build index list of visible entries — no clone
             let visible: Vec<usize> = if self.filter_query.is_empty() {
@@ -1960,7 +2055,7 @@ impl App {
                 ui.add_space(12.0);
                 ui.horizontal(|ui: &mut egui::Ui| {
                     ui.add_space(14.0); ui.spinner(); ui.add_space(8.0);
-                    ui.label(mono("Fetching…", 12.0, C_MUTED));
+                    ui.label(mono("Fetching…", 12.0, self.pal.muted));
                 });
             } else if let Some(ref err) = self.load_error.clone() {
                 ui.add_space(12.0);
@@ -1972,7 +2067,7 @@ impl App {
                 ui.add_space(12.0);
                 ui.horizontal(|ui: &mut egui::Ui| {
                     ui.add_space(14.0);
-                    ui.label(mono("Empty directory", 12.0, C_DIM));
+                    ui.label(mono("Empty directory", 12.0, self.pal.dim));
                 });
             } else {
                     let total_rows = visible.len();
@@ -2003,6 +2098,19 @@ impl App {
                             Vec2::new(avail_w, row_h), egui::Sense::click());
                         let hovered = response.hovered();
 
+                        // Scroll to this row if it's the highlight target
+                        if self.scroll_to_highlight > 0 {
+                            if let Some(ref hurl) = self.highlight_url.clone() {
+                                if entry.url.as_deref() == Some(hurl.as_str()) {
+                                    ui.scroll_to_rect(row_rect, Some(egui::Align::Center));
+                                    self.scroll_to_highlight -= 1;
+                                    if self.scroll_to_highlight == 0 {
+                                        self.highlight_url = None;
+                                    }
+                                }
+                            }
+                        }
+
                         // Check if the click landed on the checkbox area (left 20px)
                         // We do this before drawing so we can suppress the row click below
                         let click_pos = ui.input(|i| i.pointer.interact_pos());
@@ -2021,7 +2129,7 @@ impl App {
                             // Left accent bar to indicate selection without washing out text
                             let accent_rect = egui::Rect::from_min_size(
                                 row_rect.min, Vec2::new(2.0, row_rect.height()));
-                            ui.painter().rect_filled(accent_rect, 0.0, C_ACC);
+                            ui.painter().rect_filled(accent_rect, 0.0, self.pal.acc);
                         }
                         ui.painter().line_segment(
                             [row_rect.left_bottom(), row_rect.right_bottom()],
@@ -2044,28 +2152,28 @@ impl App {
                             let cb_rect = egui::Rect::from_center_size(
                                 egui::pos2(base_x + 10.0, cy), Vec2::splat(12.0));
                             if is_folder_sel {
-                                ui.painter().rect_filled(cb_rect, 2.0, C_ACC);
+                                ui.painter().rect_filled(cb_rect, 2.0, self.pal.acc);
                                 ui.painter().text(cb_rect.center(), egui::Align2::CENTER_CENTER,
-                                    "✓", FontId::monospace(9.0), C_BG);
+                                    "✓", FontId::monospace(9.0), self.pal.bg);
                             } else {
                                 // Subtle — matches border colour, only visible on hover
-                                let col = if hovered { C_BORDER2 } else { C_BORDER };
+                                let col = if hovered { self.pal.border2 } else { self.pal.border };
                                 ui.painter().rect_stroke(cb_rect, 2.0, Stroke::new(1.0, col));
                             }
                         } else {
                             // File: small filled dot to indicate type — no checkbox
-                            let dot_col = if is_downloaded { C_DOWNLOADED }
-                                else if is_queued { C_ACC }
-                                else { C_BORDER2 };
+                            let dot_col = if is_downloaded { self.pal.downloaded }
+                                else if is_queued { self.pal.acc }
+                                else { self.pal.border2 };
                             ui.painter().circle_filled(egui::pos2(base_x + 10.0, cy), 3.0, dot_col);
                         }
 
                         // No folder icon ('>') — folder is indicated by blue text colour alone
 
-                        let name_color = if is_queued { C_ACC }
-                            else if is_downloaded { C_DOWNLOADED }
-                            else if entry.is_folder { C_BLUE }
-                            else { C_FILE };
+                        let name_color = if is_queued { self.pal.acc }
+                            else if is_downloaded { self.pal.downloaded }
+                            else if entry.is_folder { self.pal.blue }
+                            else { self.pal.file };
                         let name_clip_w = if entry.is_folder {
                             (name_w - 130.0).max(40.0) // always reserve space for buttons on folders
                         } else {
@@ -2099,13 +2207,13 @@ impl App {
                         ui.painter().text(
                             egui::pos2(base_x + size_x + size_w - 4.0, cy),
                             egui::Align2::RIGHT_CENTER, &size_str,
-                            FontId::monospace(10.0), C_MUTED);
+                            FontId::monospace(10.0), self.pal.muted);
 
                         // Date
                         ui.painter().text(
                             egui::pos2(base_x + date_x + date_w - 4.0, cy),
                             egui::Align2::RIGHT_CENTER, entry.date.as_ref(),
-                            FontId::monospace(10.0), C_DIM);
+                            FontId::monospace(10.0), self.pal.dim);
 
                         // Folder checkbox interaction — left side 20px zone
                         let mut btn_open_clicked   = false;
@@ -2126,11 +2234,11 @@ impl App {
                                 Vec2::new(open_w, btn_h));
                             let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
                             if hovered {
-                                ui.painter().rect_filled(open_rect, 2.0, C_SURF2);
-                                ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, C_BORDER2));
+                                ui.painter().rect_filled(open_rect, 2.0, self.pal.surf2);
+                                ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, self.pal.border2));
                                 ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER,
                                     "-> open", FontId::monospace(9.0),
-                                    if open_resp.hovered() { C_TEXT } else { C_MUTED });
+                                    if open_resp.hovered() { self.pal.text } else { self.pal.muted });
                             }
                             btn_open_clicked = open_resp.clicked();
                         }
@@ -2152,14 +2260,12 @@ impl App {
                                 }
                             }
                         } else if response.clicked() && !entry.is_folder {
-                            // Row click — toggle file selection
+                            // Row click — toggle file selection (always allow deselect)
                             if let Some(ref url) = entry.url {
-                                if !is_queued && !is_downloaded {
-                                    if self.selected_urls.contains(url.as_ref()) {
-                                        self.selected_urls.remove(url.as_ref());
-                                    } else {
-                                        self.selected_urls.insert(url.to_string());
-                                    }
+                                if self.selected_urls.contains(url.as_ref()) {
+                                    self.selected_urls.remove(url.as_ref());
+                                } else if !is_queued && !is_downloaded {
+                                    self.selected_urls.insert(url.to_string());
                                 }
                             }
                         }
@@ -2192,33 +2298,36 @@ impl App {
 
         // Cache top-level folder list for dropdowns (computed once)
         if self.search_top_folders.is_empty() && generated_dirs::folder_count() > 0 {
-            self.search_top_folders = generated_dirs::top_level_folders();
+            self.search_top_folders = generated_dirs::top_level_folders()
+                .into_iter()
+                .map(|f| url_decode(&f))
+                .collect();
         }
 
         // Search input + filter controls
-        egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 6.0))
+        egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0, 6.0))
             .show(ui, |ui: &mut egui::Ui| {
                 ui.set_max_width(avail_w - 20.0);
                 ui.vertical(|ui: &mut egui::Ui| {
                     // Main search bar
                     ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.label(mono("⌕", 13.0, C_MUTED));
+                        ui.label(mono("⌕", 13.0, self.pal.muted));
                         ui.add_space(4.0);
                         let resp = ui.add(
                             egui::TextEdit::singleline(&mut self.search_query)
                                 .font(FontId::monospace(12.0))
                                 .desired_width(f32::INFINITY)
                                 .hint_text("search all files…")
-                                .text_color(C_TEXT)
+                                .text_color(self.pal.text)
                         );
                         if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
                             self.search_query.clear();
-                            self.search_results_cache.clear();
+                            self.search_results_cache.clear(); self.search_selected.clear();
                         }
                         if !self.search_query.is_empty() {
-                            if ui.add(egui::Button::new(mono("✕", 10.0, C_MUTED)).frame(false)).clicked() {
+                            if ui.add(egui::Button::new(mono("✕", 10.0, self.pal.muted)).frame(false)).clicked() {
                                 self.search_query.clear();
-                                self.search_results_cache.clear();
+                                self.search_results_cache.clear(); self.search_selected.clear();
                             }
                         }
                         let _ = resp;
@@ -2226,44 +2335,44 @@ impl App {
                     ui.add_space(4.0);
                     // Directory filters with dropdown buttons
                     ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.label(mono("only:", 9.0, C_DIM));
+                        ui.label(mono("only:", 9.0, self.pal.dim));
                         ui.add_space(2.0);
                         ui.add(egui::TextEdit::singleline(&mut self.search_include)
                             .font(FontId::monospace(9.5))
                             .desired_width(110.0)
                             .hint_text("e.g. No-Intro")
-                            .text_color(C_TEXT));
+                            .text_color(self.pal.text));
                         // Dropdown picker for include
                         egui::ComboBox::new("search_inc_combo", "")
                             .width(0.0)
-                            .selected_text(mono("▾", 9.0, C_MUTED))
+                            .selected_text(mono("▾", 9.0, self.pal.muted))
                             .show_ui(ui, |ui| {
-                                if ui.selectable_label(self.search_include.is_empty(), mono("(any)", 9.5, C_DIM)).clicked() {
+                                if ui.selectable_label(self.search_include.is_empty(), mono("(any)", 9.5, self.pal.dim)).clicked() {
                                     self.search_include.clear();
                                 }
                                 for folder in &self.search_top_folders.clone() {
-                                    if ui.selectable_label(self.search_include == *folder, mono(folder, 9.5, C_TEXT)).clicked() {
+                                    if ui.selectable_label(self.search_include == *folder, mono(folder, 9.5, self.pal.text)).clicked() {
                                         self.search_include = folder.clone();
                                     }
                                 }
                             });
                         ui.add_space(8.0);
-                        ui.label(mono("exclude:", 9.0, C_DIM));
+                        ui.label(mono("exclude:", 9.0, self.pal.dim));
                         ui.add_space(2.0);
                         ui.add(egui::TextEdit::singleline(&mut self.search_exclude)
                             .font(FontId::monospace(9.5))
                             .desired_width(110.0)
                             .hint_text("e.g. BIOS")
-                            .text_color(C_TEXT));
+                            .text_color(self.pal.text));
                         egui::ComboBox::new("search_exc_combo", "")
                             .width(0.0)
-                            .selected_text(mono("▾", 9.0, C_MUTED))
+                            .selected_text(mono("▾", 9.0, self.pal.muted))
                             .show_ui(ui, |ui| {
-                                if ui.selectable_label(self.search_exclude.is_empty(), mono("(none)", 9.5, C_DIM)).clicked() {
+                                if ui.selectable_label(self.search_exclude.is_empty(), mono("(none)", 9.5, self.pal.dim)).clicked() {
                                     self.search_exclude.clear();
                                 }
                                 for folder in &self.search_top_folders.clone() {
-                                    if ui.selectable_label(self.search_exclude == *folder, mono(folder, 9.5, C_TEXT)).clicked() {
+                                    if ui.selectable_label(self.search_exclude == *folder, mono(folder, 9.5, self.pal.text)).clicked() {
                                         self.search_exclude = folder.clone();
                                     }
                                 }
@@ -2271,13 +2380,13 @@ impl App {
                     });
                 });
             });
-        hline(ui);
+        hline(ui, self.pal.border);
 
         if self.search_query.is_empty() {
             ui.add_space(20.0);
             ui.horizontal(|ui: &mut egui::Ui| {
                 ui.add_space(14.0);
-                ui.label(mono("Type to search across all baked-in folders", 11.0, C_DIM));
+                ui.label(mono("Type to search across all baked-in folders", 11.0, self.pal.dim));
             });
             return;
         }
@@ -2288,7 +2397,7 @@ impl App {
                 ui.add_space(14.0);
                 ui.spinner();
                 ui.add_space(8.0);
-                ui.label(mono("Building search index…", 11.0, C_DIM));
+                ui.label(mono("Building search index…", 11.0, self.pal.dim));
             });
             ui.ctx().request_repaint_after(std::time::Duration::from_millis(200));
             return;
@@ -2305,7 +2414,16 @@ impl App {
                 .filter(|e| inc.is_empty() || e.folder.to_lowercase().contains(&inc))
                 .filter(|e| exc.is_empty() || !e.folder.to_lowercase().contains(&exc))
                 .take(500)
-                .map(|e| (e.name.clone(), e.folder.to_string(), format!("{}/{}", e.folder, e.name), e.size_bytes))
+                .map(|e| {
+                    let folder_decoded: String = e.folder.split('/')
+                        .map(|seg| url_decode(seg))
+                        .collect::<Vec<_>>()
+                        .join("/");
+                    // Store raw folder separately for navigation; href_lc for selection key only
+                    let raw_folder = e.folder.to_string();
+                    let raw_full_path = format!("{}/{}", e.folder, e.href_lc);
+                    (e.name.clone(), folder_decoded, raw_full_path, e.size_bytes, raw_folder)
+                })
                 .collect();
             self.search_last_query   = q;
             self.search_last_include = inc;
@@ -2314,14 +2432,14 @@ impl App {
 
         let results = self.search_results_cache.clone();
         let n = results.len();
-        egui::Frame::none().fill(C_SURF2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
+        egui::Frame::none().fill(self.pal.surf2).inner_margin(egui::Margin::symmetric(10.0, 3.0))
             .show(ui, |ui: &mut egui::Ui| {
                 ui.label(mono(
                     if n >= 500 { "500+ matches (refine your search)".to_string() }
                     else { format!("{} match{}", n, if n==1{""} else {"es"}) },
-                    9.0, C_MUTED));
+                    9.0, self.pal.muted));
             });
-        hline(ui);
+        hline(ui, self.pal.border);
 
         let row_h = 36.0;
         let pad   = 10.0;
@@ -2331,50 +2449,109 @@ impl App {
         let size_w = 58.0;
 
         // Collect actions outside closure to avoid borrow conflict
-        let mut action_queue_url:  Option<(String, String, u64, String)> = None; // (url, name, size_bytes, folder)
-        let mut action_open_folder: Option<String> = None; // folder path to navigate to
-        let mut action_open_and_highlight: Option<(String, String)> = None; // (folder, filename)
+        let mut action_queue_url:  Option<(String, String, u64, String)> = None;
+        let mut action_open_and_highlight: Option<(String, String, String)> = None; // (folder_decoded, filename, raw_folder)
+        let mut queue_selected = false;
+
+        // Selection action bar — always rendered at fixed height to avoid layout jump
+        egui::Frame::none().fill(self.pal.surf2).inner_margin(egui::Margin::symmetric(10.0, 4.0))
+            .show(ui, |ui: &mut egui::Ui| {
+                ui.set_min_height(22.0);
+                if !self.search_selected.is_empty() {
+                    ui.horizontal(|ui: &mut egui::Ui| {
+                        ui.label(mono(format!("{} selected", self.search_selected.len()), 9.0, self.pal.muted));
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
+                            if ui.add(egui::Button::new(mono("clear", 9.0, self.pal.muted))
+                                .fill(Color32::TRANSPARENT).frame(false)).clicked() {
+                                self.search_selected.clear();
+                            }
+                            ui.add_space(8.0);
+                            if ui.add(egui::Button::new(mono("+ queue all selected", 9.5, self.pal.acc))
+                                .fill(self.pal.surf).stroke(Stroke::new(1.0, self.pal.border2))
+                                .min_size(Vec2::new(120.0, 20.0))).clicked() {
+                                queue_selected = true;
+                            }
+                        });
+                    });
+                }
+            });
 
         egui::ScrollArea::vertical().id_source("search_tab_results").auto_shrink([false;2])
             .max_width(avail_w)
             .show_rows(ui, row_h, results.len(), |ui, range| {
                 ui.set_max_width(avail_w);
-                for (name, folder, full_path, size) in &results[range] {
+                for (name, folder, full_path, size, raw_folder) in &results[range] {
+                    let is_sel = self.search_selected.contains(full_path.as_str());
                     let (row, resp) = ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
                     let row = egui::Rect::from_min_size(row.min, Vec2::new(avail_w, row_h));
-                    let hovered = resp.hovered();
-                    if hovered {
+
+                    // Use pointer position for hover — inset by 0.5px top/bottom to avoid
+                    // adjacent rows both triggering when pointer is exactly on the border
+                    let hovered = ui.input(|i| i.pointer.hover_pos())
+                        .map(|p| row.shrink2(egui::vec2(0.0, 0.5)).contains(p))
+                        .unwrap_or(false);
+
+                    if is_sel {
+                        ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(
+                            self.pal.acc.r(), self.pal.acc.g(), self.pal.acc.b(), 18));
+                    } else if hovered {
                         ui.painter().rect_filled(row, 0.0, Color32::from_rgba_premultiplied(255,255,255,6));
                     }
-                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, C_BORDER));
+                    ui.painter().line_segment([row.left_bottom(), row.right_bottom()], Stroke::new(1.0, self.pal.border));
 
-                    // Action buttons — right side, visible on hover
+                    // Action buttons — always allocate to prevent layout jump on hover
                     let cy = row.center().y;
-                    if hovered {
-                        // "→" open folder and highlight file
-                        let open_rect = egui::Rect::from_center_size(
-                            egui::pos2(row.max.x - pad - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
-                        let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
-                        ui.painter().rect_filled(open_rect, 2.0, C_SURF2);
-                        ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, C_BORDER2));
-                        ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER,
-                            "→", FontId::monospace(10.0), if open_resp.hovered() { C_TEXT } else { C_MUTED });
-                        if open_resp.clicked() {
-                            action_open_and_highlight = Some((folder.clone(), name.clone()));
-                        }
+                    let open_rect = egui::Rect::from_center_size(
+                        egui::pos2(row.max.x - pad - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
+                    let q_rect = egui::Rect::from_center_size(
+                        egui::pos2(row.max.x - pad - btn_w - btn_gap - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
+                    let open_resp = ui.allocate_rect(open_rect, egui::Sense::click());
+                    let q_resp   = ui.allocate_rect(q_rect,    egui::Sense::click());
 
-                        // "+" queue file
-                        let q_rect = egui::Rect::from_center_size(
-                            egui::pos2(row.max.x - pad - btn_w - btn_gap - btn_w/2.0, cy), Vec2::new(btn_w, 18.0));
-                        let q_resp = ui.allocate_rect(q_rect, egui::Sense::click());
-                        ui.painter().rect_filled(q_rect, 2.0, C_SURF2);
-                        ui.painter().rect_stroke(q_rect, 2.0, Stroke::new(1.0, C_BORDER2));
+                    if hovered {
+                        ui.painter().rect_filled(open_rect, 2.0, self.pal.surf2);
+                        ui.painter().rect_stroke(open_rect, 2.0, Stroke::new(1.0, self.pal.border2));
+                        ui.painter().text(open_rect.center(), egui::Align2::CENTER_CENTER,
+                            "→", FontId::monospace(10.0), if open_resp.hovered() { self.pal.text } else { self.pal.muted });
+
+                        ui.painter().rect_filled(q_rect, 2.0, self.pal.surf2);
+                        ui.painter().rect_stroke(q_rect, 2.0, Stroke::new(1.0, self.pal.border2));
                         ui.painter().text(q_rect.center(), egui::Align2::CENTER_CENTER,
-                            "+", FontId::monospace(12.0), if q_resp.hovered() { C_ACC } else { C_MUTED });
-                        if q_resp.clicked() {
-                            let file_url = format!("{}{}/{}", BASE_URL,
-                                folder.trim_end_matches('/'), name);
-                            action_queue_url = Some((file_url, name.clone(), *size, folder.clone()));
+                            "+", FontId::monospace(12.0), if q_resp.hovered() { self.pal.acc } else { self.pal.muted });
+                    }
+                    if open_resp.clicked() {
+                        action_open_and_highlight = Some((folder.clone(), name.clone(), raw_folder.clone()));
+                    }
+                    if q_resp.clicked() {
+                        // Look up the original-case href from the folder index to get correct URL.
+                        // href_lc is lowercase so can't be used directly for case-sensitive servers.
+                        let file_url = generated_dirs::lookup(raw_folder.as_str())
+                            .and_then(|entries| {
+                                entries.into_iter()
+                                    .find(|e| e.href.to_lowercase() == full_path.rsplit_once('/').map(|(_, n)| n).unwrap_or(""))
+                                    .and_then(|e| {
+                                        reqwest::Url::parse(BASE_URL).ok()
+                                            .and_then(|base| base.join(&format!("{}/{}", raw_folder, e.href)).ok())
+                                            .map(|u| u.to_string())
+                                    })
+                            })
+                            .unwrap_or_else(|| format!("{}{}", BASE_URL, full_path));
+                        action_queue_url = Some((file_url, name.clone(), *size, folder.clone()));
+                    }
+
+                    // Row click — toggle selection (Ctrl/Cmd = add, plain click = toggle single)
+                    if resp.clicked() && !open_resp.clicked() && !q_resp.clicked() {
+                        if ui.input(|i| i.modifiers.command || i.modifiers.ctrl || i.modifiers.shift) {
+                            if is_sel { self.search_selected.remove(full_path.as_str()); }
+                            else      { self.search_selected.insert(full_path.clone()); }
+                        } else {
+                            // Plain click: if only this item selected, deselect; else select just this one
+                            if is_sel && self.search_selected.len() == 1 {
+                                self.search_selected.clear();
+                            } else {
+                                self.search_selected.clear();
+                                self.search_selected.insert(full_path.clone());
+                            }
                         }
                     }
 
@@ -2387,21 +2564,17 @@ impl App {
                         egui::pos2(text_x, row.min.y), egui::pos2(text_max_x, row.max.y));
                     let p = ui.painter().with_clip_rect(text_clip);
                     p.text(egui::pos2(text_x, top_y), egui::Align2::LEFT_TOP,
-                        name, FontId::monospace(11.0), C_FILE);
+                        name, FontId::monospace(11.0), self.pal.file);
                     p.text(egui::pos2(text_x, bot_y), egui::Align2::LEFT_TOP,
-                        folder, FontId::monospace(9.0), C_MUTED);
+                        folder, FontId::monospace(9.0), self.pal.muted);
 
                     if *size > 0 {
                         let size_x = row.max.x - btns_w - size_w + pad/2.0;
                         ui.painter().text(egui::pos2(size_x, top_y), egui::Align2::LEFT_TOP,
-                            fmt_size(*size), FontId::monospace(9.0), C_MUTED);
+                            fmt_size(*size), FontId::monospace(9.0), self.pal.muted);
                     }
 
-                    // Row click (not on buttons) — open folder
-                    if resp.clicked() {
-                        action_open_folder = Some(folder.clone());
-                        let _ = full_path;
-                    }
+                    let _ = full_path; // full_path used for selection key and action construction
                 }
             });
 
@@ -2409,25 +2582,43 @@ impl App {
         if let Some((url, name, size_bytes, folder)) = action_queue_url {
             self.queue_file(url, name, size_bytes, folder);
         }
-        if let Some((folder, filename)) = action_open_and_highlight {
+        if let Some((folder, filename, raw_folder)) = action_open_and_highlight {
+            self.crumb_stack.clear();
             let mut path = String::new();
-            for seg in folder.trim_matches('/').split('/').filter(|s| !s.is_empty()) {
-                path = format!("{}{}/", path, seg);
-                self.crumb_stack.push((url_decode(seg), path.clone()));
+            let raw_segs: Vec<&str> = raw_folder.split('/').filter(|s| !s.is_empty()).collect();
+            let dec_segs: Vec<&str> = folder.split('/').filter(|s| !s.is_empty()).collect();
+            for i in 0..raw_segs.len() {
+                path = format!("{}{}/", path, raw_segs[i]);
+                let label = dec_segs.get(i).copied().unwrap_or(raw_segs[i]);
+                self.crumb_stack.push((label.to_string(), path.clone()));
             }
             self.search_highlight = Some(filename);
             self.browser_tab = BrowserTab::Browse;
             self.navigate(path);
         }
-        if let Some(folder) = action_open_folder {
-            self.crumb_stack.clear();
-            let mut path = String::new();
-            for seg in folder.trim_matches('/').split('/').filter(|s| !s.is_empty()) {
-                path = format!("{}{}/", path, seg);
-                self.crumb_stack.push((url_decode(seg), path.clone()));
+        if queue_selected {
+            let to_queue: Vec<(String, String, u64, String)> = self.search_results_cache.iter()
+                .filter(|(_, _, full_path, _, _)| self.search_selected.contains(full_path.as_str()))
+                .filter_map(|(name, folder, full_path, size, raw_folder)| {
+                    let href_lc = full_path.rsplit_once('/')?.1;
+                    let url = generated_dirs::lookup(raw_folder.as_str())
+                        .and_then(|entries| {
+                            entries.into_iter()
+                                .find(|e| e.href.to_lowercase() == href_lc)
+                                .and_then(|e| {
+                                    reqwest::Url::parse(BASE_URL).ok()
+                                        .and_then(|base| base.join(&format!("{}/{}", raw_folder, e.href)).ok())
+                                        .map(|u| u.to_string())
+                                })
+                        })
+                        .unwrap_or_else(|| format!("{}{}", BASE_URL, full_path));
+                    Some((url, name.clone(), *size, folder.clone()))
+                })
+                .collect();
+            for (url, name, size, folder) in to_queue {
+                self.queue_file(url, name, size, folder);
             }
-            self.browser_tab = BrowserTab::Browse;
-            self.navigate(path);
+            self.search_selected.clear();
         }
 
     }
@@ -2435,36 +2626,36 @@ impl App {
     // ── Queue pane ────────────────────────────────────────────────────────────
     fn draw_queue(&mut self, ui: &mut egui::Ui, queue: &[QueueJob], active_dl: usize) {
         ui.vertical(|ui: &mut egui::Ui| {
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0,5.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0,5.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(26.0);
                     ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.label(mono("QUEUE", 9.0, C_MUTED));
+                        ui.label(mono("QUEUE", 9.0, self.pal.muted));
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui: &mut egui::Ui| {
                             if !queue.is_empty() {
                                 let total_bytes: u64 = queue.iter().map(|j| j.file_size).sum();
                                 let count_str = format!("{} item{}", queue.len(), if queue.len()==1{""} else {"s"});
                                 if total_bytes > 0 {
-                                    ui.label(mono(format!("{}  ·  {}", count_str, fmt_size(total_bytes)), 9.0, C_MUTED));
+                                    ui.label(mono(format!("{}  ·  {}", count_str, fmt_size(total_bytes)), 9.0, self.pal.muted));
                                 } else {
-                                    ui.label(mono(count_str, 9.0, C_MUTED));
+                                    ui.label(mono(count_str, 9.0, self.pal.muted));
                                 }
                             }
                         });
                     });
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0,3.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0,3.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     ui.set_min_height(20.0);
                     ui.horizontal(|ui: &mut egui::Ui| {
-                        ui.label(mono("STATUS", 9.0, C_DIM));
+                        ui.label(mono("STATUS", 9.0, self.pal.dim));
                         ui.add_space(28.0);
-                        ui.label(mono("FILE", 9.0, C_DIM));
+                        ui.label(mono("FILE", 9.0, self.pal.dim));
                     });
                 });
-            hline(ui);
+            hline(ui, self.pal.border);
 
             let avail_w  = ui.available_width();
             let has_sel  = !self.queue_selected.is_empty();
@@ -2489,9 +2680,9 @@ impl App {
                     if queue.is_empty() {
                         ui.add_space(24.0);
                         ui.vertical_centered(|ui: &mut egui::Ui| {
-                            ui.label(mono("No files queued.", 11.0, C_DIM));
+                            ui.label(mono("No files queued.", 11.0, self.pal.dim));
                             ui.add_space(4.0);
-                            ui.label(mono("Click files to add them.", 10.0, C_DIM));
+                            ui.label(mono("Click files to add them.", 10.0, self.pal.dim));
                         });
                         return;
                     }
@@ -2505,13 +2696,13 @@ impl App {
                         let (row_rect, row_resp) = ui.allocate_exact_size(
                             Vec2::new(avail_w, row_h), egui::Sense::click());
                         ui.painter().line_segment([row_rect.left_bottom(), row_rect.right_bottom()],
-                            Stroke::new(1.0, C_BORDER));
+                            Stroke::new(1.0, self.pal.border));
 
                         if is_sel {
                             ui.painter().rect_filled(row_rect, 0.0,
                                 Color32::from_rgba_premultiplied(0x2a, 0x34, 0x44, 40));
                             let accent = egui::Rect::from_min_size(row_rect.min, Vec2::new(2.0, row_h));
-                            ui.painter().rect_filled(accent, 0.0, C_MUTED);
+                            ui.painter().rect_filled(accent, 0.0, self.pal.muted);
                         }
 
                         if row_resp.clicked() { clicked_idx = Some((idx, shift)); }
@@ -2522,8 +2713,8 @@ impl App {
                         // Checkbox
                         let cb_rect = egui::Rect::from_center_size(
                             egui::pos2(base_x + cb_w / 2.0, cy), Vec2::splat(9.0));
-                        if is_sel { ui.painter().rect_filled(cb_rect, 1.5, C_MUTED); }
-                        else      { ui.painter().rect_stroke(cb_rect, 1.5, Stroke::new(0.5, C_BORDER2)); }
+                        if is_sel { ui.painter().rect_filled(cb_rect, 1.5, self.pal.muted); }
+                        else      { ui.painter().rect_stroke(cb_rect, 1.5, Stroke::new(0.5, self.pal.border2)); }
 
                         // Status label
                         let status_clip = egui::Rect::from_min_size(
@@ -2537,7 +2728,7 @@ impl App {
                             ui.painter().text(egui::pos2(base_x + cb_w + status_w - 2.0, cy),
                                 egui::Align2::RIGHT_CENTER,
                                 if v {"✓"} else {"⚠"}, FontId::monospace(9.0),
-                                if v {C_ACC} else {C_WARN});
+                                if v {self.pal.acc} else {C_WARN});
                         }
 
                         // Name + path
@@ -2552,29 +2743,29 @@ impl App {
                             ui.painter().text(
                                 egui::pos2(right_edge - 4.0, cy),
                                 egui::Align2::RIGHT_CENTER,
-                                &size_str, FontId::monospace(9.0), C_MUTED);
+                                &size_str, FontId::monospace(9.0), self.pal.muted);
                         }
 
                         let info_w = (right_edge - size_w - info_x - 4.0).max(20.0);
                         let info_rect = egui::Rect::from_min_size(egui::pos2(info_x, row_rect.min.y), Vec2::new(info_w, row_h));
-                        let ng = ui.painter().layout_no_wrap(job.name.clone(), FontId::monospace(11.0), C_TEXT);
+                        let ng = ui.painter().layout_no_wrap(job.name.clone(), FontId::monospace(11.0), self.pal.text);
                         let decoded_path = url_decode(&job.path);
-                        let pg = ui.painter().layout_no_wrap(decoded_path, FontId::monospace(9.0), C_MUTED);
+                        let pg = ui.painter().layout_no_wrap(decoded_path, FontId::monospace(9.0), self.pal.muted);
                         let bh = ng.size().y + 2.0 + pg.size().y;
                         let ty = cy - bh/2.0;
                         let ng_h = ng.size().y;
-                        ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty), ng, C_TEXT);
-                        ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty + ng_h + 2.0), pg, C_MUTED);
+                        ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty), ng, self.pal.text);
+                        ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty + ng_h + 2.0), pg, self.pal.muted);
 
                         // Resume button
                         if has_resume {
                             let rx = row_rect.max.x - rm_w - 6.0 - res_w;
                             let r  = egui::Rect::from_min_size(egui::pos2(rx, cy - 9.0), Vec2::new(res_w, 18.0));
                             let rr = ui.allocate_rect(r, egui::Sense::click());
-                            ui.painter().rect_filled(r, 2.0, C_SURF2);
-                            ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, C_BORDER2));
+                            ui.painter().rect_filled(r, 2.0, self.pal.surf2);
+                            ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, self.pal.border2));
                             ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "▶ resume",
-                                FontId::monospace(9.0), if rr.hovered() {C_ACC} else {C_MUTED});
+                                FontId::monospace(9.0), if rr.hovered() {self.pal.acc} else {self.pal.muted});
                             if rr.clicked() { to_resume = Some(job.id.clone()); }
                         }
 
@@ -2584,7 +2775,7 @@ impl App {
                             let r  = egui::Rect::from_center_size(egui::pos2(rx, cy), Vec2::splat(18.0));
                             let rr = ui.allocate_rect(r, egui::Sense::click());
                             ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "✕",
-                                FontId::monospace(11.0), if rr.hovered() {C_ERR} else {C_DIM});
+                                FontId::monospace(11.0), if rr.hovered() {C_ERR} else {self.pal.dim});
                             if rr.clicked() { to_remove = Some(job.id.clone()); }
                         }
                     }
@@ -2625,7 +2816,7 @@ impl App {
             }
 
             // Footer
-            egui::Frame::none().fill(C_SURF).inner_margin(egui::Margin::symmetric(10.0, 8.0))
+            egui::Frame::none().fill(self.pal.surf).inner_margin(egui::Margin::symmetric(10.0, 8.0))
                 .show(ui, |ui: &mut egui::Ui| {
                     let waiting = queue.iter().filter(|j| j.status == JobStatus::Waiting).count();
                     let paused  = queue.iter().filter(|j| j.status == JobStatus::Paused).count();
@@ -2635,7 +2826,7 @@ impl App {
                             if errs > 0 { format!("  ·  {} failed", errs) } else { String::new() }) }
                         else { format!("{} waiting  ·  {} paused{}", waiting, paused,
                             if errs > 0 { format!("  ·  {} failed", errs) } else { String::new() }) };
-                    ui.label(mono(stat, 9.0, C_MUTED));
+                    ui.label(mono(stat, 9.0, self.pal.muted));
                     ui.add_space(6.0);
 
                     if !self.queue_selected.is_empty() {
@@ -2643,7 +2834,7 @@ impl App {
                         // Keep selected only
                         if ui.add(
                             egui::Button::new(mono(format!("⊘  Remove unselected ({} kept)", n), 11.0, C_WARN))
-                                .fill(C_SURF2).stroke(Stroke::new(1.0, C_BORDER2))
+                                .fill(self.pal.surf2).stroke(Stroke::new(1.0, self.pal.border2))
                                 .min_size(Vec2::new(ui.available_width(), 26.0))
                         ).clicked() {
                             let to_remove: Vec<String> = queue.iter()
@@ -2658,7 +2849,7 @@ impl App {
                         // Remove selected
                         if ui.add(
                             egui::Button::new(mono(format!("✕  Remove {} selected", n), 11.0, C_ERR))
-                                .fill(C_SURF2).stroke(Stroke::new(1.0, C_BORDER2))
+                                .fill(self.pal.surf2).stroke(Stroke::new(1.0, self.pal.border2))
                                 .min_size(Vec2::new(ui.available_width(), 26.0))
                         ).clicked() {
                             let ids: Vec<String> = self.queue_selected.drain().collect();
@@ -2671,21 +2862,21 @@ impl App {
                     ui.horizontal(|ui: &mut egui::Ui| {
                         let has_active = active_dl > 0;
                         if ui.add_enabled(has_active,
-                            egui::Button::new(mono("⏸ Pause active", 11.0, if has_active { C_WARN } else { C_DIM }))
-                                .fill(C_SURF2).stroke(Stroke::new(1.0, C_BORDER2))
+                            egui::Button::new(mono("⏸ Pause active", 11.0, if has_active { C_WARN } else { self.pal.dim }))
+                                .fill(self.pal.surf2).stroke(Stroke::new(1.0, self.pal.border2))
                                 .min_size(Vec2::new(120.0, 26.0))
                         ).clicked() { self.pause_all_active(); }
                         ui.add_space(6.0);
                         let qp = self.settings.queue_paused;
                         let (label, fg, bg) = if qp {
-                            ("▶  Start queue", Color32::from_rgb(0x04,0x0a,0x08), C_ACC)
+                            ("▶  Start queue", Color32::from_rgb(0x04,0x0a,0x08), self.pal.acc)
                         } else {
-                            ("⏸  Pause queue", C_TEXT, C_SURF2)
+                            ("⏸  Pause queue", self.pal.text, self.pal.surf2)
                         };
                         if ui.add(
                             egui::Button::new(mono(label, 11.0, fg).strong())
                                 .fill(bg)
-                                .stroke(if qp { Stroke::NONE } else { Stroke::new(1.0, C_BORDER2) })
+                                .stroke(if qp { Stroke::NONE } else { Stroke::new(1.0, self.pal.border2) })
                                 .min_size(Vec2::new(ui.available_width(), 26.0))
                         ).clicked() {
                             self.settings.queue_paused = !self.settings.queue_paused;
