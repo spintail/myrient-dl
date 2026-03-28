@@ -1482,9 +1482,15 @@ impl eframe::App for App {
             s.progress.clone() // only active downloads — small
         };
 
-        if self.loading || active_dl > 0 || has_spooling || has_waiting {
+        // Drive repaints only when something is visually changing.
+        if active_dl > 0 || has_spooling {
+            // Active downloads: repaint at ~20fps to update progress bars
             ctx.request_repaint_after(Duration::from_millis(50));
+        } else if self.loading || (has_waiting && !self.settings.queue_paused) {
+            // Loading a folder or waiting jobs that may kick soon: 5fps is plenty
+            ctx.request_repaint_after(Duration::from_millis(200));
         }
+        // Otherwise: fully idle — egui repaints only on user interaction
         // When auto_theme is enabled, re-check OS preference every 5s and apply if changed
         if self.settings.auto_theme {
             let now = ctx.input(|i| i.time);
@@ -1659,7 +1665,13 @@ impl eframe::App for App {
             });
 
         // ── Active downloads panel — always visible, fixed 5-slot height ──────
-        let queue_snap: Vec<QueueJob> = self.shared.lock().unwrap().queue.clone();
+        let mut queue_snap: Vec<QueueJob> = self.shared.lock().unwrap().queue.clone();
+        queue_snap.sort_by_key(|j| match &j.status {
+            JobStatus::Downloading | JobStatus::Spooling | JobStatus::Verifying => 0u8,
+            JobStatus::Waiting | JobStatus::Paused => 1,
+            JobStatus::Done    => 3,
+            JobStatus::Error(_)=> 2,
+        });
         let active_jobs: Vec<&QueueJob> = queue_snap.iter()
             .filter(|j| j.status.is_active()).collect();
 
