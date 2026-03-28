@@ -501,7 +501,7 @@ impl App {
 
     fn do_search(&mut self) {
         if self.search_query.is_empty() { self.search_results.clear(); return; }
-        let q = self.search_query.to_lowercase();
+        let q = self.search_query.to_lowercase().replace(' ', "%20");
         // Search baked-in tree via per-block lookup, otherwise fall back to current entries
         let results: Vec<(String, String)> = if generated_dirs::folder_count() > 0 {
             generated_dirs::search(&q)
@@ -778,7 +778,16 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     };
     let (queue_items, active_jobs): (Vec<ListItem>, Vec<(String, Progress)>) = {
         let s = app.shared.lock().unwrap();
-        let items = s.queue.iter().enumerate().map(|(i, j)| {
+        // Build display order: active → waiting/paused → error → done
+        let mut sorted_indices: Vec<usize> = (0..s.queue.len()).collect();
+        sorted_indices.sort_by_key(|&i| match &s.queue[i].status {
+            JobStatus::Downloading | JobStatus::Spooling | JobStatus::Verifying => 0u8,
+            JobStatus::Waiting | JobStatus::Paused => 1,
+            JobStatus::Error(_) => 2,
+            JobStatus::Done     => 3,
+        });
+        let items = sorted_indices.iter().enumerate().map(|(display_i, &qi)| {
+            let j = &s.queue[qi];
             let sel = app.queue_sel.contains(&j.id);
             let (status_sym, status_col) = match &j.status {
                 JobStatus::Waiting     => ("·", muted),
@@ -792,7 +801,6 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             let sel_sym = if sel { app.sym.checked } else { " " };
             let prog = s.progress.get(&j.id);
             let pct_str = prog.and_then(|p| if p.percent > 0.0 { Some(format!("{:3.0}%", p.percent)) } else { None });
-            // Left: [sel] [status] name — name truncated to fill, no text on right
             let avail_name = 34usize;
             let name_trunc = &j.name[..j.name.len().min(avail_name)];
             let right = if let Some(pct) = pct_str {
@@ -806,7 +814,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
                 Span::styled(format!("{:<34}", name_trunc), Style::default().fg(if matches!(j.status, JobStatus::Done) { muted } else { text })),
                 Span::styled(right, Style::default().fg(muted)),
             ]);
-            ListItem::new(line).style(if app.queue_state.selected() == Some(i) { Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)) } else { Style::default() })
+            ListItem::new(line).style(if app.queue_state.selected() == Some(display_i) { Style::default().bg(Color::Rgb(0x1a,0x28,0x1e)) } else { Style::default() })
         }).collect();
         let active = s.queue.iter().filter(|j| j.status.is_active()).map(|j| (j.id.clone(), s.progress.get(&j.id).cloned().unwrap_or_default())).collect();
         (items, active)

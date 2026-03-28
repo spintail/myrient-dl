@@ -1482,15 +1482,9 @@ impl eframe::App for App {
             s.progress.clone() // only active downloads — small
         };
 
-        // Drive repaints only when something is visually changing.
-        if active_dl > 0 || has_spooling {
-            // Active downloads: repaint at ~20fps to update progress bars
+        if self.loading || active_dl > 0 || has_spooling || has_waiting {
             ctx.request_repaint_after(Duration::from_millis(50));
-        } else if self.loading || (has_waiting && !self.settings.queue_paused) {
-            // Loading a folder or waiting jobs that may kick soon: 5fps is plenty
-            ctx.request_repaint_after(Duration::from_millis(200));
         }
-        // Otherwise: fully idle — egui repaints only on user interaction
         // When auto_theme is enabled, re-check OS preference every 5s and apply if changed
         if self.settings.auto_theme {
             let now = ctx.input(|i| i.time);
@@ -2482,7 +2476,8 @@ impl App {
             return;
         }
 
-        let q   = self.search_query.to_lowercase();
+        // Search index stores hrefs as percent-encoded lowercase — convert spaces to %20
+        let q   = self.search_query.to_lowercase().replace(' ', "%20");
         let inc = self.search_include.to_lowercase();
         let exc = self.search_exclude.to_lowercase();
 
@@ -2861,7 +2856,15 @@ impl App {
                 });
 
             // Apply deferred actions
-            if let Some(id) = to_remove { self.remove_from_queue(&id); self.queue_selected.remove(&id); }
+            if let Some(id) = to_remove {
+                self.remove_from_queue(&id);
+                self.queue_selected.remove(&id);
+                // Suppress any row selection that fired alongside the remove click
+                clicked_idx = None;
+            }
+            // Purge stale IDs (jobs removed externally)
+            let live_ids: std::collections::HashSet<String> = queue.iter().map(|j| j.id.clone()).collect();
+            self.queue_selected.retain(|id| live_ids.contains(id));
             if let Some(id) = to_resume { self.resume_job(&id); }
             if let Some((idx, shift)) = clicked_idx {
                 let job_id = queue[idx].id.clone();
