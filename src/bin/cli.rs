@@ -159,6 +159,16 @@ fn url_decode(s: &str) -> String {
     }
     out
 }
+fn search_encode(query: &str) -> String {
+    let mut out = String::with_capacity(query.len() * 2);
+    for b in query.to_lowercase().bytes() {
+        match b {
+            b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{:02x}", b)),
+        }
+    }
+    out
+}
 fn next_id() -> String { format!("{:x}{:x}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis(), rand_u32()) }
 fn rand_u32() -> u32 { std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().subsec_nanos() }
 fn fmt_size(b: u64) -> String { match b { b if b >= 1_000_000_000 => format!("{:.1}GB", b as f64/1e9), b if b >= 1_000_000 => format!("{:.1}MB", b as f64/1e6), b if b >= 1_000 => format!("{:.1}KB", b as f64/1e3), b => format!("{}B", b) } }
@@ -501,7 +511,7 @@ impl App {
 
     fn do_search(&mut self) {
         if self.search_query.is_empty() { self.search_results.clear(); return; }
-        let q = self.search_query.to_lowercase().replace(' ', "%20");
+        let q = search_encode(&self.search_query);
         // Search baked-in tree via per-block lookup, otherwise fall back to current entries
         let results: Vec<(String, String)> = if generated_dirs::folder_count() > 0 {
             generated_dirs::search(&q)
@@ -648,6 +658,27 @@ impl App {
         save_queue(&s.queue);
         self.queued_urls.retain(|u| s.queue.iter().any(|j| &j.url == u));
     }
+
+    fn retry_job(&mut self, id: &str) {
+        let mut s = self.shared.lock().unwrap();
+        if let Some(j) = s.queue.iter_mut().find(|j| j.id == id) {
+            j.status = JobStatus::Waiting;
+            j.resume = false;
+            j.retry_count = 0;
+        }
+    }
+
+    fn retry_all_failed(&mut self) {
+        let ids: Vec<String> = {
+            let s = self.shared.lock().unwrap();
+            s.queue.iter()
+                .filter(|j| matches!(j.status, JobStatus::Error(_)))
+                .map(|j| j.id.clone())
+                .collect()
+        };
+        for id in &ids { self.retry_job(&id); }
+        self.status_msg = format!("Retrying {} failed download{}", ids.len(), if ids.len()==1{""} else {"s"});
+    }
 }
 
 // -- Drawing -------------------------------------------------------------------
@@ -749,7 +780,16 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
             let icon_style = if e.is_folder { Style::default().fg(blue) } else if is_dl { Style::default().fg(green) } else { Style::default().fg(muted) };
             let name_style = if is_queued { Style::default().fg(green) } else if is_dl { Style::default().fg(Color::Rgb(0x2a,0x50,0x3a)) } else if e.is_folder { Style::default().fg(blue) } else if is_sel { Style::default().fg(green).add_modifier(Modifier::BOLD) } else { Style::default().fg(file_c) };
             let prefix = if is_sel { &format!("[{}] ", app.sym.checked) } else { "    " };
-            let size_str = if e.size.is_empty() || e.size == "-" { String::new() } else { format!(" {}", &e.size) };
+            let size_str = if e.is_folder {
+                // Look up pre-calculated recursive folder size from embedded index
+                let folder_path = format!("{}{}", app.current_path.trim_end_matches('/'), 
+                    if app.current_path.is_empty() { e.href.trim_end_matches('/').to_string() }
+                    else { format!("/{}", e.href.trim_end_matches('/')) });
+                let key = folder_path.trim_matches('/');
+                generated_dirs::folder_size(key)
+                    .map(|b| format!(" {}", fmt_size(b)))
+                    .unwrap_or_default()
+            } else if e.size.is_empty() || e.size == "-" { String::new() } else { format!(" {}", &e.size) };
             ListItem::new(Line::from(vec![
                 Span::styled(format!(" {} ", icon), icon_style),
                 Span::styled(format!("{}{:<55}", prefix, &e.name[..e.name.len().min(55)]), name_style),
@@ -853,7 +893,7 @@ fn draw(f: &mut ratatui::Frame, app: &mut App) {
     } else {
         (
             format!("jk/↑↓ navigate{sep}Enter open{sep}Space select{sep}a all{sep}A deselect{sep}q queue files/folder{sep}/ search{sep}f filter{sep}Tab switch"),
-            format!("s pause/resume{sep}+- threads{sep}[] retries{sep}R refresh{sep}x remove{sep}Q/^C quit"),
+            format!("s pause/resume{sep}+- threads{sep}[] retries{sep}R refresh{sep}r retry failed{sep}x remove{sep}Q/^C quit"),
         )
     };
     let line1 = Line::from(vec![
@@ -987,6 +1027,17 @@ fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Result<()> 
                 }
                 KeyCode::Char('x') => {
                     if app.active_pane == Pane::Queue && !app.queue_sel.is_empty() { app.remove_queue_sel(); }
+                }
+                KeyCode::Char('r') => {
+                    if app.active_pane == Pane::Queue {
+                        if app.queue_sel.is_empty() {
+                            app.retry_all_failed();
+                        } else {
+                            let ids: Vec<String> = app.queue_sel.iter().cloned().collect();
+                            for id in &ids { app.retry_job(&id); }
+                            app.status_msg = format!("Retrying {} item{}", ids.len(), if ids.len()==1{""} else {"s"});
+                        }
+                    }
                 }
 
                 // Search

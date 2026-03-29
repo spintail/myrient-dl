@@ -614,6 +614,22 @@ fn url_decode(s: &str) -> String {
     out
 }
 
+/// Encode a user-typed search query into the percent-encoded form used by the
+/// search index (which stores href_lc — the URL-encoded filename, lowercased).
+/// Unreserved URL characters (alphanumeric + - . _ ~) pass through unchanged.
+/// Everything else is percent-encoded as UTF-8 bytes.
+/// The query is lowercased first to match href_lc.
+fn search_encode(query: &str) -> String {
+    let mut out = String::with_capacity(query.len() * 2);
+    for b in query.to_lowercase().bytes() {
+        match b {
+            b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{:02x}", b)),
+        }
+    }
+    out
+}
+
 // ── Download manager ──────────────────────────────────────────────────────────
 fn download_manager(rx: std::sync::mpsc::Receiver<DlCmd>, shared: Arc<Mutex<Shared>>) {
     let mut procs: HashMap<String, std::sync::mpsc::Sender<()>> = HashMap::new();
@@ -1336,6 +1352,18 @@ impl App {
             let mut s = self.shared.lock().unwrap();
             if let Some(j) = s.queue.iter_mut().find(|j| j.id == id) {
                 j.status = JobStatus::Waiting; j.resume = true;
+            }
+        }
+        self.kick_downloads();
+    }
+
+    fn retry_job(&mut self, id: &str) {
+        {
+            let mut s = self.shared.lock().unwrap();
+            if let Some(j) = s.queue.iter_mut().find(|j| j.id == id) {
+                j.status = JobStatus::Waiting;
+                j.resume = false;
+                j.retry_count = 0;
             }
         }
         self.kick_downloads();
@@ -2476,8 +2504,8 @@ impl App {
             return;
         }
 
-        // Search index stores hrefs as percent-encoded lowercase — convert spaces to %20
-        let q   = self.search_query.to_lowercase().replace(' ', "%20");
+        // Encode query to match percent-encoded index format (href_lc)
+        let q   = search_encode(&self.search_query);
         let inc = self.search_include.to_lowercase();
         let exc = self.search_exclude.to_lowercase();
 
@@ -2737,6 +2765,7 @@ impl App {
             let scroll_h = (ui.available_height() - footer_h).max(40.0);
             let mut to_remove:     Option<String>            = None;
             let mut to_resume:     Option<String>            = None;
+            let mut to_retry:      Option<String>            = None;
             let mut clicked_idx:   Option<(usize, bool)>     = None; // (idx, shift_held)
 
             let cb_w     = 20.0;
@@ -2805,9 +2834,11 @@ impl App {
                                 if v {self.pal.acc} else {C_WARN});
                         }
 
-                        // Name + path
+                        // Resume button (paused jobs) / Retry button (errored jobs)
                         let has_resume = job.status == JobStatus::Paused;
-                        let right_edge = row_rect.max.x - rm_w - 6.0 - if has_resume { res_w + 4.0 } else { 0.0 };
+                        let has_retry  = matches!(job.status, JobStatus::Error(_));
+                        let right_edge = row_rect.max.x - rm_w - 6.0
+                            - if has_resume || has_retry { res_w + 4.0 } else { 0.0 };
                         let info_x = base_x + cb_w + status_w + 4.0;
 
                         // File size — right-aligned before the buttons
@@ -2831,7 +2862,7 @@ impl App {
                         ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty), ng, self.pal.text);
                         ui.painter().with_clip_rect(info_rect).galley(egui::pos2(info_x, ty + ng_h + 2.0), pg, self.pal.muted);
 
-                        // Resume button
+                        // Resume button (paused)
                         if has_resume {
                             let rx = row_rect.max.x - rm_w - 6.0 - res_w;
                             let r  = egui::Rect::from_min_size(egui::pos2(rx, cy - 9.0), Vec2::new(res_w, 18.0));
@@ -2841,6 +2872,18 @@ impl App {
                             ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "▶ resume",
                                 FontId::monospace(9.0), if rr.hovered() {self.pal.acc} else {self.pal.muted});
                             if rr.clicked() { to_resume = Some(job.id.clone()); }
+                        }
+
+                        // Retry button (errored)
+                        if has_retry {
+                            let rx = row_rect.max.x - rm_w - 6.0 - res_w;
+                            let r  = egui::Rect::from_min_size(egui::pos2(rx, cy - 9.0), Vec2::new(res_w, 18.0));
+                            let rr = ui.allocate_rect(r, egui::Sense::click());
+                            ui.painter().rect_filled(r, 2.0, self.pal.surf2);
+                            ui.painter().rect_stroke(r, 2.0, Stroke::new(1.0, C_ERR));
+                            ui.painter().text(r.center(), egui::Align2::CENTER_CENTER, "↻ retry",
+                                FontId::monospace(9.0), if rr.hovered() {C_ERR} else {self.pal.muted});
+                            if rr.clicked() { to_retry = Some(job.id.clone()); }
                         }
 
                         // Remove button
@@ -2866,6 +2909,7 @@ impl App {
             let live_ids: std::collections::HashSet<String> = queue.iter().map(|j| j.id.clone()).collect();
             self.queue_selected.retain(|id| live_ids.contains(id));
             if let Some(id) = to_resume { self.resume_job(&id); }
+            if let Some(id) = to_retry  { self.retry_job(&id); }
             if let Some((idx, shift)) = clicked_idx {
                 let job_id = queue[idx].id.clone();
                 if shift {
@@ -2910,6 +2954,22 @@ impl App {
                             if errs > 0 { format!("  ·  {} failed", errs) } else { String::new() }) };
                     ui.label(mono(stat, 9.0, self.pal.muted));
                     ui.add_space(6.0);
+
+                    // Retry all failed
+                    if errs > 0 {
+                        if ui.add(
+                            egui::Button::new(mono(format!("↻  Retry {} failed", errs), 11.0, C_ERR))
+                                .fill(self.pal.surf2).stroke(Stroke::new(1.0, self.pal.border2))
+                                .min_size(Vec2::new(ui.available_width(), 26.0))
+                        ).clicked() {
+                            let ids: Vec<String> = queue.iter()
+                                .filter(|j| matches!(j.status, JobStatus::Error(_)))
+                                .map(|j| j.id.clone())
+                                .collect();
+                            for id in &ids { self.retry_job(&id); }
+                        }
+                        ui.add_space(4.0);
+                    }
 
                     if !self.queue_selected.is_empty() {
                         let n = self.queue_selected.len();
